@@ -53,6 +53,20 @@ it('P3-T06 T07 callout, attachment, duplication and block controls are functiona
   expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
 });
 
+it('P3-T04 inserts evidence and saved views through searchable pickers', async () => {
+  const changes = vi.fn();
+  vi.spyOn(phase3Api, 'search').mockResolvedValue([{ id: '33333333-3333-4333-8333-333333333333', display_id: 'EVD-0001', title: 'Request proof', kind: 'evidence', excerpt: '' }]);
+  vi.spyOn(phase3Api, 'views').mockResolvedValue([{ id: '44444444-4444-4444-8444-444444444444', engagement_id: 'e1', record_type: 'finding', name: 'Open findings', view_type: 'table', config: { columns: ['title'], column_order: ['title'], column_widths: {}, filters: [], sorts: [], group_by: null }, is_default: false, deleted_at: null }]);
+  mount(<RichEditor content={{ type: 'doc', content: [{ type: 'paragraph' }] }} onChange={changes} engagementId="e1" />);
+  await userEvent.selectOptions(screen.getByLabelText('Insert block'), 'File attachment');
+  await userEvent.click(await screen.findByRole('button', { name: /Request proof/ }));
+  await waitFor(() => expect(JSON.stringify(changes.mock.calls.at(-1)?.[0])).toContain('fileAttachment'));
+  await userEvent.selectOptions(screen.getByLabelText('Insert block'), 'Database view');
+  await userEvent.type(screen.getByLabelText('Search workspace resources'), 'Open');
+  await userEvent.click(await screen.findByRole('button', { name: /Open findings/ }));
+  await waitFor(() => expect(JSON.stringify(changes.mock.calls.at(-1)?.[0])).toContain('databaseView'));
+});
+
 it('P3-C01 custom property manager creates typed definitions', async () => {
   vi.spyOn(phase3Api, 'properties').mockResolvedValue([]);
   const create = vi.spyOn(phase3Api, 'createProperty').mockResolvedValue({ id: 'p1', engagement_id: 'e1', record_type: 'asset', name: 'Review date', data_type: 'date', allowed_values: [], default_value: null, required: true, display_order: 0, visible: true, deleted_at: null });
@@ -78,12 +92,21 @@ it('P3-C05 saved views can be created, selected, duplicated and deleted', async 
   const existing: SavedView = { id: 'v1', engagement_id: 'e1', record_type: 'surface', name: 'Not Reviewed', view_type: 'table', config: { columns: ['title'], column_order: ['title'], column_widths: {}, filters: [], sorts: [], group_by: null }, is_default: true, deleted_at: null };
   vi.spyOn(phase3Api, 'views').mockResolvedValue([existing]);
   vi.spyOn(phase3Api, 'createView').mockResolvedValue({ ...existing, id: 'v2', name: 'Mine' });
+  const patch = vi.spyOn(phase3Api, 'patchView').mockResolvedValue(existing);
   const duplicate = vi.spyOn(phase3Api, 'duplicateView').mockResolvedValue({ ...existing, id: 'v3' });
   const remove = vi.spyOn(phase3Api, 'deleteView').mockResolvedValue();
   const select = vi.fn(); mount(<SavedViews eid="e1" kind="surface" onSelect={select} />);
   await userEvent.click(await screen.findByRole('tab', { name: 'Not Reviewed' })); expect(select).toHaveBeenCalledWith(existing);
+  await userEvent.click(screen.getByLabelText('Edit Not Reviewed'));
+  await userEvent.clear(screen.getByLabelText('Visible view columns'));
+  await userEvent.type(screen.getByLabelText('Visible view columns'), 'title,status');
+  await userEvent.click(screen.getByRole('button', { name: 'Update view' }));
+  await waitFor(() => expect(patch).toHaveBeenCalledWith('e1', 'v1', expect.objectContaining({ config: expect.objectContaining({ column_order: ['title', 'status'] }) })));
   await userEvent.click(screen.getByLabelText('Duplicate Not Reviewed')); expect(duplicate).toHaveBeenCalledWith('e1', 'v1');
-  await userEvent.click(screen.getByLabelText('Delete Not Reviewed')); expect(remove).toHaveBeenCalledWith('e1', 'v1');
+  await userEvent.click(screen.getByLabelText('Delete Not Reviewed'));
+  expect(screen.getByRole('dialog', { name: 'Delete saved view' })).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'Delete view' }));
+  expect(remove).toHaveBeenCalledWith('e1', 'v1');
 });
 
 it('P3-E01 evidence drag/upload sends bytes and review metadata', async () => {

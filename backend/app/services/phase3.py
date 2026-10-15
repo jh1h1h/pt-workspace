@@ -14,7 +14,9 @@ from app.models.records import (
     CustomPropertyValue,
     DocumentLink,
     Evidence,
+    EvidenceFile,
     RecordRegistry,
+    SavedView,
 )
 from app.repositories.workspace import page
 
@@ -55,6 +57,38 @@ def document_targets(document: dict[str, Any]) -> dict[str, set[str]]:
 
 
 def reconcile_document_links(db: Session, entity: Page) -> None:
+    def validate_resources(node: Any) -> None:
+        if not isinstance(node, dict):
+            return
+        kind = node.get("type")
+        attrs = node.get("attrs", {})
+        if kind in {"evidenceImage", "fileAttachment"}:
+            evidence_id = attrs.get("evidenceId")
+            target = db.scalar(
+                select(EvidenceFile)
+                .join(Page, Page.id == EvidenceFile.evidence_id)
+                .where(
+                    EvidenceFile.evidence_id == evidence_id,
+                    Page.engagement_id == entity.engagement_id,
+                    Page.deleted_at.is_(None),
+                )
+            )
+            if not target:
+                raise HTTPException(422, "An evidence block targets an inaccessible stored file")
+        if kind == "databaseView":
+            saved = db.scalar(
+                select(SavedView).where(
+                    SavedView.id == attrs.get("viewId"),
+                    SavedView.engagement_id == entity.engagement_id,
+                    SavedView.deleted_at.is_(None),
+                )
+            )
+            if not saved:
+                raise HTTPException(422, "An embedded database block targets an inaccessible saved view")
+        for child in node.get("content", []):
+            validate_resources(child)
+
+    validate_resources(entity.content)
     desired = document_targets(entity.content)
     for origin in ("mention", "wiki"):
         existing = {
@@ -116,6 +150,8 @@ def rebuild_engagement_index(db: Session, eid: str) -> None:
                 extra.append(value.value)
         evidence = db.get(Evidence, entity.id)
         if evidence:
+            if evidence.review_state == "Restricted":
+                continue
             extra.extend([evidence.evidence_type, evidence.source_tool, evidence.source_reference or ""])
         db.execute(
             text("INSERT INTO page_search(page_id,engagement_id,kind,title,body) VALUES (:p,:e,:k,:t,:b)"),
@@ -214,7 +250,7 @@ def parse_import(format_name: str, payload: bytes) -> list[dict[str, str]]:
             rows = loaded if isinstance(loaded, list) else loaded.get("records", [])
         elif format_name == "katana-jsonl":
             rows = [json.loads(line) for line in source.splitlines() if line.strip()]
-        elif format_name == "feroxbuster-json":
+        elif format_name in {"feroxbuster-json", "feroxbuster-jsonl"}:
             rows = [json.loads(line) for line in source.splitlines() if line.strip()]
         else:
             raise HTTPException(422, "Unsupported import format")

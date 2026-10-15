@@ -74,22 +74,4 @@ export const blockCommands: {
   run: e => {
     e.chain().focus().insertContent({ type: 'callout', attrs: { tone: 'info', icon: '💡' }, content: [{ type: 'paragraph' }] }).run();
   }
-}, {
-  label: 'Evidence image',
-  run: e => {
-    const evidenceId = window.prompt('Evidence UUID');
-    if (evidenceId) e.chain().focus().insertContent({ type: 'evidenceImage', attrs: { evidenceId, alt: 'Evidence image', caption: '' } }).run();
-  }
-}, {
-  label: 'File attachment',
-  run: e => {
-    const evidenceId = window.prompt('Evidence UUID');
-    if (evidenceId) e.chain().focus().insertContent({ type: 'fileAttachment', attrs: { evidenceId, label: 'Evidence attachment' } }).run();
-  }
-}, {
-  label: 'Database view',
-  run: e => {
-    const viewId = window.prompt('Saved view UUID');
-    if (viewId) e.chain().focus().insertContent({ type: 'databaseView', attrs: { viewId } }).run();
-  }
 }];

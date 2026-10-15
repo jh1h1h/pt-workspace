@@ -1,0 +1,2 @@
+url,method,title,authentication_context,source
+https://example.test/login,POST,Login endpoint,Unauthenticated,manual export

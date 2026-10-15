@@ -126,7 +126,7 @@ Local files, passive previews, metadata, sanitization state, and links to multip
 
 Typed relational table with source/target UUIDs, relationship type, engagement ownership, timestamps, and uniqueness rules. Show both directions in the UI, including appropriate inverse labels. Reject foreign-engagement links and preserve soft-deleted targets for recovery.
 
-## 9. Phase 3 customization and editing — planned only
+## 9. Phase 3 customization and editing
 
 - Manage custom property definitions through the UI with validated property types and constrained storage values. Do not use arbitrary JSON as the only structure for specialized domain records.
 - Saved database views and richer customization of the Phase 2 table/Kanban baseline; filtering, sorting, grouping, resizing, column ordering/visibility. Search remains visible; filter/sort/group controls open from a compact Filter button in a modal. Persist views per engagement; clarify personal vs record view ownership in implementation.
@@ -137,10 +137,11 @@ Typed relational table with source/target UUIDs, relationship type, engagement o
 - Embedded linked database views backed by saved queries and permissions/scoping, not copies of records.
 - File attachments/images in local controlled storage, passive previews, safe paste handling, editor callouts and block reorder controls.
 - Read-only HTTP evidence inspection: view stored request/response headers/body, decoding as an explicit passive operation. No send/replay controls, no automatic request to the assessed target.
+- This delivery also accepts the five explicitly documented passive import adapters (Generic CSV/JSON, Katana JSONL, Feroxbuster JSONL and sanitized HTTP exchange text). They only parse user-supplied local bytes, require preview and confirmation, retain provenance and never contact imported targets. Broader scanner adapters, round-trip workspace import/export and recovery remain Phase 4.
 
 ## 10. Phase 4 reliability, import, export, deployment — planned only
 
-- Structured scanner-result imports, safely parsed from local files, never execute the scanner. Provide preview/validation, deduplication, source-tool/import provenance, original observation retention, and explicit candidate/verified status handling. Idempotent re-import must not create silent duplicates or erase history.
+- Additional structured scanner-result and round-trip workspace imports beyond the five Phase 3 passive adapters, safely parsed from local files and never executed. They require preview/validation, deduplication, provenance, original observation retention, and explicit candidate/verified status handling.
 - Immutable revision history with document and structured-field snapshots, attribution appropriate to a single user, and explicit restoration generating a new revision.
 - Activity History for creates, changes, opens where appropriate, imports, deletion, restoration, and exports, scoped by engagement and navigable to accessible records.
 - Complete Trash and recovery controls that preserve relationships/hierarchy and explain effects before destructive operations. Permanent purge must be explicit and account for attachments and relation references.

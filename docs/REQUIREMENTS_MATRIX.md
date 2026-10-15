@@ -53,22 +53,23 @@ Status vocabulary: Not Started, In Progress, Implemented, Verified, Blocked, Rem
 | P2-FINDINGS | Candidate defaults, explicit verification and protected Report Ready | 2 | services/records.py; RecordProperties.tsx | P2-B13–B14; P2-F07; P2-E04 | Verified |
 | P2-EVIDENCE | Evidence metadata, sanitization state, documents and multi-record links | 2 | models/records.py; features/records | P2-B01; P2-B15; P2-B20 | Verified |
 | P2-RELATIONS | Scoped UUID registry, bidirectional links and atomic multiple picker | 2 | services/relationships.py; RelatedRecordsPanel.tsx | P2-B04; P2-B15–B17; P2-F08–F09; P2-E05–E06 | Verified |
-| P3-PROPERTIES | UI-managed custom typed properties | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
-| P3-VIEWS | Persistent saved database views | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
-| P3-TABLE-KANBAN | Saved/customizable table and Kanban views beyond Phase 2 baseline | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
+| P3-PROPERTIES | UI-managed custom typed properties | 3 | phase3.py; CustomProperties.tsx | P3-C01–C04; P3-E2E-01 | Verified |
+| P3-VIEWS | Persistent saved database views | 3 | phase3.py; SavedViews.tsx | P3-C05–C06; P3-E2E-01 | Verified |
+| P3-TABLE-KANBAN | Saved/customizable table and Kanban views beyond Phase 2 baseline | 3 | RecordTable.tsx; BacklogKanban.tsx; SavedViews.tsx | P3-C05; P2-E07 | Implemented |
 | P3-FILTER-SORT | Modal filtering/sorting/grouping from compact Filter controls | 3 | RecordTable.tsx; BacklogKanban.tsx; Tasks.tsx | P2-F02 updated modal workflow; desktop visual check 2026-10-15 | Implemented |
-| P3-COLUMNS | Column resizing/order/visibility | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
-| P3-BULK | Bulk edits with conflicts; CSV export | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
-| P3-FTS | Global full-text SQLite search | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
-| P3-MENTIONS | Internal @ mentions and [[ wiki links | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
-| P3-BACKLINKS | Document-mention/wiki backlinks beyond Phase 2 relationship backlinks | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
+| P3-COLUMNS | Column resizing/order/visibility | 3 | RecordTable.tsx; SavedViews.tsx | P3-C05 component configuration | Implemented |
+| P3-BULK | Bulk edits with conflicts; CSV export | 3 | phase3.py; RecordTable.tsx | P3-C07–C08 | Verified |
+| P3-FTS | Global full-text SQLite search | 3 | page_search FTS5; SearchDialog.tsx | P3-S01–S05; P3-E2E-02–03 | Verified |
+| P3-MENTIONS | Internal @ mentions and [[ wiki links | 3 | RichEditor.tsx; phase3Extensions.tsx | P3-T01–T02 | Verified |
+| P3-BACKLINKS | Document-mention/wiki backlinks beyond Phase 2 relationship backlinks | 3 | document_links; phase3.py | P3-T01–T05 | Verified |
 | P3-CAPTURE | Keyboard-only Quick Capture dialog without persistent floating control | 3 | GlobalQuickCapture.tsx; Tools.tsx | P3-X05; manual shortcut check 2026-10-15 | Verified |
-| P3-EMBEDS | Embedded linked database/related-record views | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
-| P3-FILES | File attachments/images and safe passive previews | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
-| P3-HTTP | Read-only HTTP evidence inspection; no replay/target requests | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
+| P3-EMBEDS | Embedded linked database/related-record views | 3 | phase3Extensions.tsx; RichEditor.tsx | P3-T04; P3-C06 | Verified |
+| P3-FILES | File attachments/images and safe passive previews | 3 | phase3.py; Tools.tsx | P3-E01–E10; P3-E2E-02 | Verified |
+| P3-HTTP | Read-only HTTP evidence inspection; no replay/target requests | 3 | phase3.py; Tools.tsx | P3-E03–E10; P3-I01–I10 | Verified |
 | P3-EDITOR | Block reorder/callouts/advanced paste extensions with compact block-actions menu | 3 | RichEditor.tsx; phase3Extensions.tsx | P3-T06–T07; desktop/mobile visual checks 2026-10-15 | Verified |
 | P3-CONVERT | Convert selected Notes content to another note | 3 | Retired | Backend/frontend absence tests | Removed |
-| P4-IMPORT | Structured scanner file imports | 4 | SPEC.md §10 | Planned; tests required in corresponding phase | Not Started |
+| P3-IMPORT | Five documented passive import adapters with preview/confirm/provenance | 3 | phase3.py; Tools.tsx; docs/import-examples | P3-I01–I10; P3-E2E-03 | Verified |
+| P4-IMPORT | Broader structured and round-trip imports beyond Phase 3 adapters | 4 | SPEC.md §10 | Future phase tests required | Not Started |
 | P4-DEDUPE | Import deduplication with provenance and historical retention | 4 | SPEC.md §10 | Planned; tests required in corresponding phase | Not Started |
 | P4-REVISIONS | Immutable document/structured-property revision history | 4 | SPEC.md §10 | Planned; tests required in corresponding phase | Not Started |
 | P4-ACTIVITY | Scoped navigable Activity History | 4 | SPEC.md §10 | Planned; tests required in corresponding phase | Not Started |
@@ -83,4 +84,4 @@ Status vocabulary: Not Started, In Progress, Implemented, Verified, Blocked, Rem
 | P2-VIEWS | Reusable tables: inline edits, search, filters, sort, pagination, delete/restore | 2 | RecordTable.tsx; api/records.py | P2-B18; P2-B20; P2-F01–F02; P2-E01–E10 | Verified |
 | P2-MIGRATION | Additive typed schema/registry preserving every Phase 1 row | 2 | backend/migrations/versions/b7fa36c2836a* | P2-B19; empty migration upgrade/repeat/schema check | Verified |
 | P2-ACCEPTANCE | Phase 1–2 suites and static checks | 2 | backend/tests; frontend/src/tests; frontend/e2e | P2-B01–B20; P2-F01–F10; P2-E01–E10; all P1 suites | Verified |
-| P3-EVIDENCE-FILES | Evidence file storage, uploads and passive file previews | 3 | SPEC.md §9 | Future phase tests required | Not Started |
+| P3-EVIDENCE-FILES | Evidence file storage, uploads and passive file previews | 3 | evidence_files; phase3.py; Tools.tsx | P3-E01–E10; P3-E2E-02 | Verified |

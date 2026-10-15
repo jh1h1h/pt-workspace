@@ -1,5 +1,6 @@
 import hashlib
 import json
+import socket
 from pathlib import Path
 from typing import Any
 from fastapi.testclient import TestClient
@@ -43,6 +44,18 @@ def test_P3_C02_invalid_values_and_cross_engagement_relations(client: TestClient
         assert status == (404 if kind == "relation" else 422)
 
 
+def test_P3_C02_required_property_without_default_blocks_record_creation(client: TestClient) -> None:
+    eid = engagement(client)
+    definition = property_create(client, eid, "finding", "Required ticket", "text", required=True)
+    missing = client.post(f"/api/v1/engagements/{eid}/findings", json={"title": "Missing"})
+    assert missing.status_code == 422
+    created = client.post(
+        f"/api/v1/engagements/{eid}/findings",
+        json={"title": "Complete", "custom_values": {definition["id"]: "SEC-42"}},
+    )
+    assert created.status_code == 201, created.text
+
+
 def test_P3_C05_C06_saved_views_persist_and_use_source_records(client: TestClient) -> None:
     eid = engagement(client)
     first = create(client, eid, "surface", "Authentication endpoint")
@@ -65,6 +78,37 @@ def test_P3_C07_C08_bulk_update_is_scoped_and_csv_selection(client: TestClient) 
     view = client.post(f"/api/v1/engagements/{eid}/saved-views", json={"record_type": "backlog", "name": "All", "config": {}}).json()
     export = client.get(f"/api/v1/engagements/{eid}/saved-views/{view['id']}/export.csv?selected={rows[0]['id']}")
     assert export.status_code == 200 and ",A,backlog," in export.text and ",B,backlog," not in export.text
+
+
+def test_P3_C04_C08_custom_bulk_revision_and_view_allowlist(client: TestClient) -> None:
+    eid = engagement(client)
+    rows = [create(client, eid, "asset", title) for title in ["A", "B"]]
+    field = property_create(client, eid, "asset", "Owner team", "text")
+    bulk = client.post(
+        f"/api/v1/engagements/{eid}/bulk-update",
+        json={
+            "ids": [row["id"] for row in rows],
+            "revisions": {row["id"]: row["revision"] for row in rows},
+            "field": f"custom:{field['id']}",
+            "value": "Red team",
+        },
+    )
+    assert bulk.status_code == 200, bulk.text
+    assert {row["revision"] for row in bulk.json()} == {2}
+    assert all(
+        client.get(f"/api/v1/engagements/{eid}/records/{row['id']}/custom-values").json()[0]["value"]
+        == "Red team"
+        for row in rows
+    )
+    rejected = client.post(
+        f"/api/v1/engagements/{eid}/saved-views",
+        json={
+            "record_type": "asset",
+            "name": "Unsafe",
+            "config": {"filters": [{"field": "__table__", "value": "x"}]},
+        },
+    )
+    assert rejected.status_code == 422
 
 
 def test_P3_C09_C10_workflow_labels_keep_canonical_semantics(client: TestClient) -> None:
@@ -94,10 +138,16 @@ def test_P3_T01_T05_structured_links_backlinks_rename_and_origin_safety(client: 
     assert relations(client, eid, source)[0]["id"] == manual["id"]
 
 
-def test_P3_T06_new_blocks_roundtrip_and_invalid_target_rejected(client: TestClient) -> None:
+def test_P3_T06_new_blocks_roundtrip_and_invalid_target_rejected(client: TestClient, tmp_path: Path, monkeypatch: Any) -> None:
+    monkeypatch.setenv("VAPT_EVIDENCE_DIR", str(tmp_path / "evidence"))
     eid = engagement(client)
     page = client.post(f"/api/v1/engagements/{eid}/pages", json={"title": "Blocks"}).json()
-    document = {"type": "doc", "content": [{"type": "callout", "attrs": {"tone": "info", "icon": "!"}, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Callout"}]}]}, {"type": "fileAttachment", "attrs": {"evidenceId": "00000000-0000-0000-0000-000000000001", "label": "file"}}, {"type": "databaseView", "attrs": {"viewId": "00000000-0000-0000-0000-000000000002"}}]}
+    evidence = upload(client, eid, b"stored proof", "proof.txt").json()["page"]
+    saved_view = client.post(
+        f"/api/v1/engagements/{eid}/saved-views",
+        json={"record_type": "evidence", "name": "Evidence", "config": {}},
+    ).json()
+    document = {"type": "doc", "content": [{"type": "callout", "attrs": {"tone": "info", "icon": "!"}, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Callout"}]}]}, {"type": "fileAttachment", "attrs": {"evidenceId": evidence["id"], "label": "file"}}, {"type": "databaseView", "attrs": {"viewId": saved_view["id"]}}]}
     response = client.patch(f"/api/v1/engagements/{eid}/pages/{page['id']}", json={"revision": 1, "content": document})
     assert response.status_code == 200 and response.json()["content"] == document
     bad = {"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "mention", "attrs": {"recordId": "not-a-uuid", "label": "bad"}}]}]}
@@ -147,6 +197,7 @@ def test_P3_E05_E06_E08_E10_evidence_limits_safe_preview_and_isolation(client: T
     assert client.get(f"/api/v1/engagements/{two}/evidence-files/{evidence['id']}/download").status_code == 404
     oversized = upload(client, one, b"x" * (25 * 1024 * 1024 + 1), "huge.txt")
     assert oversized.status_code == 413
+    assert client.get(f"/api/v1/engagements/{one}/search?q=active").json() == []
 
 
 def test_P3_S01_S04_search_updates_deletes_and_isolates(client: TestClient) -> None:
@@ -173,7 +224,7 @@ def test_P3_I01_I04_supported_import_previews_do_not_mutate(client: TestClient) 
         ("csv", b"url,method\nhttps://example.test/a,GET\n"),
         ("json", b'[{"url":"https://example.test/b","method":"POST"}]'),
         ("katana-jsonl", b'{"url":"https://example.test/c","method":"GET"}\n'),
-        ("feroxbuster-json", b'{"url":"https://example.test/d","method":"GET","status":200}\n'),
+        ("feroxbuster-jsonl", b'{"url":"https://example.test/d","method":"GET","status":200}\n'),
     ]
     for format, payload in fixtures:
         response = preview(client, eid, format, payload)
@@ -181,7 +232,11 @@ def test_P3_I01_I04_supported_import_previews_do_not_mutate(client: TestClient) 
     assert client.get(f"/api/v1/engagements/{eid}/attack-surfaces").json()["total"] == 0
 
 
-def test_P3_I05_I10_import_confirm_idempotence_notes_and_history(client: TestClient) -> None:
+def test_P3_I05_I10_import_confirm_idempotence_notes_history_and_no_network(client: TestClient, monkeypatch: Any) -> None:
+    def forbid_network(*args: Any, **kwargs: Any) -> None:
+        raise AssertionError("Passive import attempted to open a network connection")
+
+    monkeypatch.setattr(socket, "create_connection", forbid_network)
     eid = engagement(client)
     assert preview(client, eid, "json", b"not json").status_code == 422
     job = preview(client, eid, "csv", b"url,method,source\nhttps://example.test/login,GET,katana\n", "scan.csv").json()
@@ -202,9 +257,10 @@ def test_P3_I05_I10_import_confirm_idempotence_notes_and_history(client: TestCli
 def test_P3_templates_and_quick_capture_are_scoped(client: TestClient) -> None:
     one, two = engagement(client, "One"), engagement(client, "Two")
     initialized = client.post(f"/api/v1/engagements/{one}/content-templates/initialize")
-    assert initialized.status_code == 201 and len(initialized.json()) == 5
+    assert initialized.status_code == 201 and len(initialized.json()) == 6
     templates = client.get(f"/api/v1/engagements/{one}/content-templates").json()
-    assert len(templates) == 5 and client.get(f"/api/v1/engagements/{two}/content-templates").json() == []
+    assert len(templates) == 6 and {item["name"] for item in templates} >= {"Authentication testing", "Authorization testing", "Input handling", "Business logic review", "Findings investigation", "General testing notes"}
+    assert client.get(f"/api/v1/engagements/{two}/content-templates").json() == []
     created = client.post(f"/api/v1/engagements/{one}/content-templates/{templates[0]['id']}/instantiate", json={"title": "From template"})
     assert created.status_code == 201 and created.json()["content"]["content"][0]["type"] == "heading"
     capture = client.post(f"/api/v1/engagements/{one}/quick-capture", json={"kind": "finding", "title": "Captured candidate"})

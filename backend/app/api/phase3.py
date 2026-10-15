@@ -7,7 +7,7 @@ from pathlib import Path
 from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import FileResponse, PlainTextResponse, Response, StreamingResponse
-from sqlalchemy import exists, func, select, text
+from sqlalchemy import exists, func, select, text, update
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.entities import Page, PersonalTask, now
@@ -30,6 +30,7 @@ from app.models.records import (
 from app.repositories.workspace import engagement, output, page
 from app.schemas.contracts import PageOut
 from app.schemas.records import CREATE_SCHEMAS
+from app.schemas.record_properties import FIELD_SCHEMAS
 from app.schemas.phase3 import (
     BulkUpdate,
     EvidenceMetadata,
@@ -95,7 +96,8 @@ def property_list(eid: str, record_type: str | None = None, deleted: bool = Fals
 def property_create(eid: str, data: PropertyCreate, db: Session = Depends(get_db)) -> dict:
     engagement(db, eid)
     entity = CustomPropertyDefinition(engagement_id=eid, **data.model_dump())
-    validate_property_value(db, entity, entity.default_value, eid)
+    if entity.default_value is not None:
+        validate_property_value(db, entity, entity.default_value, eid)
     db.add(entity)
     db.commit()
     return as_dict(entity)
@@ -129,7 +131,8 @@ def property_patch(eid: str, property_id: str, data: PropertyPatch, db: Session 
         db.delete(value)
     for key, value in changes.items():
         setattr(entity, key, value)
-    validate_property_value(db, entity, entity.default_value, eid)
+    if entity.default_value is not None:
+        validate_property_value(db, entity, entity.default_value, eid)
     entity.updated_at = now()
     db.commit()
     return as_dict(entity)
@@ -199,10 +202,52 @@ def clear_default(db: Session, eid: str, record_type: str, keep: str) -> None:
         old.is_default = False
 
 
+def validate_view_config(db: Session, eid: str, record_type: str, config: dict) -> None:
+    """Reject unknown view fields before they can reach query construction."""
+    page_fields = {"id", "display_id", "title", "type", "created_at", "updated_at"}
+    domain_fields = set(FIELD_SCHEMAS[record_type].model_fields)
+    ordinary = page_fields | domain_fields
+    custom_ids = set(
+        db.scalars(
+            select(CustomPropertyDefinition.id).where(
+                CustomPropertyDefinition.engagement_id == eid,
+                CustomPropertyDefinition.record_type == record_type,
+                CustomPropertyDefinition.deleted_at.is_(None),
+            )
+        )
+    )
+
+    def allowed(field: object) -> bool:
+        return isinstance(field, str) and (
+            field in ordinary
+            or (field.startswith("custom:") and field.removeprefix("custom:") in custom_ids)
+        )
+
+    for key in ("columns", "column_order"):
+        if any(not allowed(field) for field in config.get(key, [])):
+            raise HTTPException(422, "Saved view contains an unsupported column")
+    for item in config.get("filters", []):
+        if not isinstance(item, dict) or not allowed(item.get("field")):
+            raise HTTPException(422, "Saved view contains an unsupported filter")
+    sortable = ordinary - {"id", "type"}
+    for item in config.get("sorts", []):
+        if (
+            not isinstance(item, dict)
+            or item.get("field") not in sortable
+            or item.get("direction") not in {"asc", "desc"}
+        ):
+            raise HTTPException(422, "Saved view contains an unsupported sort")
+    group_by = config.get("group_by")
+    if group_by is not None and group_by not in ordinary:
+        raise HTTPException(422, "Saved view contains an unsupported grouping field")
+
+
 @router.post("/saved-views", status_code=201)
 def view_create(eid: str, data: ViewCreate, db: Session = Depends(get_db)) -> dict:
     engagement(db, eid)
-    entity = SavedView(engagement_id=eid, **data.model_dump(mode="json"))
+    values = data.model_dump(mode="json")
+    validate_view_config(db, eid, data.record_type, values["config"])
+    entity = SavedView(engagement_id=eid, **values)
     db.add(entity)
     db.flush()
     if entity.is_default:
@@ -223,7 +268,10 @@ def view_duplicate(eid: str, view_id: str, db: Session = Depends(get_db)) -> dic
 @router.patch("/saved-views/{view_id}")
 def view_patch(eid: str, view_id: str, data: ViewPatch, db: Session = Depends(get_db)) -> dict:
     entity = view(db, eid, view_id)
-    for key, value in data.model_dump(exclude_unset=True, mode="json").items():
+    changes = data.model_dump(exclude_unset=True, mode="json")
+    if "config" in changes:
+        validate_view_config(db, eid, entity.record_type, changes["config"])
+    for key, value in changes.items():
         setattr(entity, key, value)
     if entity.is_default:
         clear_default(db, eid, entity.record_type, entity.id)
@@ -269,8 +317,16 @@ def view_records(eid: str, view_id: str, offset: int = Query(0, ge=0), limit: in
 def view_export(eid: str, view_id: str, selected: str = "", db: Session = Depends(get_db)) -> StreamingResponse:
     saved = view(db, eid, view_id)
     data = view_records(eid, view_id, 0, 200, db)
+    items = list(data["items"])
+    while len(items) < data["total"]:
+        page_data = view_records(eid, view_id, len(items), 200, db)
+        if not page_data["items"]:
+            break
+        items.extend(page_data["items"])
     selected_ids = set(filter(None, selected.split(",")))
-    rows = [row for row in data["items"] if not selected_ids or row.id in selected_ids]
+    rows = [row for row in items if not selected_ids or row.id in selected_ids]
+    if saved.record_type == "evidence":
+        rows = [row for row in rows if db.get(Evidence, row.id).review_state != "Restricted"]
     columns = saved.config.get("columns") or ["id", "display_id", "title", "type", "updated_at"]
     columns = [column for column in columns if isinstance(column, str) and (column in {"id", "display_id", "title", "type", "created_at", "updated_at"} or column.startswith("custom:") or hasattr(RECORD_MODELS[saved.record_type], column))][:100]
     buffer = io.StringIO()
@@ -306,6 +362,14 @@ def bulk_update(eid: str, data: BulkUpdate, db: Session = Depends(get_db)) -> li
             raise HTTPException(409, "A selected record changed; reload before bulk editing")
         if custom_definition:
             set_property_value(db, eid, pid, custom_definition, data.value)
+            result = db.execute(
+                update(Page)
+                .where(Page.id == pid, Page.revision == data.revisions[pid])
+                .values(revision=data.revisions[pid] + 1, updated_at=now())
+            )
+            if result.rowcount != 1:
+                raise HTTPException(409, "A selected record changed; reload before bulk editing")
+            db.refresh(entity)
             entities.append(entity)
         else:
             entities.append(patch_record(db, entity, registry.kind, {"revision": data.revisions[pid], data.field: data.value}))
@@ -408,12 +472,13 @@ async def evidence_upload(eid: str, request: Request, metadata: str = Query(...,
         raise HTTPException(422, "Unsafe storage path")
     destination.write_bytes(payload)
     file = EvidenceFile(evidence_id=record.id, original_filename=original, stored_filename=stored, file_size=len(payload), mime_type=mime, sha256=digest)
-    db.add(file)
-    if info.related_id:
-        add_link(db, eid, record.id, info.related_id, "supports")
     try:
+        db.add(file)
+        if info.related_id:
+            add_link(db, eid, record.id, info.related_id, "supports")
         db.commit()
     except Exception:
+        db.rollback()
         destination.unlink(missing_ok=True)
         raise
     return {"page": output(db, record), "file": as_dict(file), "duplicate": False}
@@ -623,7 +688,7 @@ def content_template_initialize(eid: str, db: Session = Depends(get_db)) -> list
     samples = [
         ("Authentication testing", "test_case"), ("Authorization testing", "test_case"),
         ("Input handling", "test_case"), ("Business logic review", "test_case"),
-        ("Findings investigation", "finding"),
+        ("Findings investigation", "finding"), ("General testing notes", "test_case"),
     ]
     existing = set(db.scalars(select(ReusableTemplate.name).where(ReusableTemplate.engagement_id == eid)))
     created = []

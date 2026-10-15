@@ -22,7 +22,7 @@
       [
         "json",
         {
-          "outputFile": "test-results/results.json"
+          "outputFile": "../docs/e2e-test-results.json"
         }
       ]
     ],
@@ -79,12 +79,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 811,
+                  "duration": 1787,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-14T13:42:44.923Z",
+                  "startTime": "2026-10-15T06:28:40.414Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -94,7 +94,7 @@
           ],
           "id": "c331d53f43701d168858-da8c1668753a51834000",
           "file": "phase1.spec.ts",
-          "line": 35,
+          "line": 36,
           "column": 1
         },
         {
@@ -113,12 +113,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1750,
+                  "duration": 3095,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-14T13:42:45.800Z",
+                  "startTime": "2026-10-15T06:28:42.400Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -128,7 +128,7 @@
           ],
           "id": "c331d53f43701d168858-79eaf9f0193627774627",
           "file": "phase1.spec.ts",
-          "line": 49,
+          "line": 50,
           "column": 1
         },
         {
@@ -147,12 +147,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 807,
+                  "duration": 1658,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-14T13:42:47.559Z",
+                  "startTime": "2026-10-15T06:28:45.512Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -162,7 +162,7 @@
           ],
           "id": "c331d53f43701d168858-345f7af57172794e2753",
           "file": "phase1.spec.ts",
-          "line": 65,
+          "line": 66,
           "column": 1
         },
         {
@@ -181,12 +181,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 958,
+                  "duration": 2235,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-14T13:42:48.376Z",
+                  "startTime": "2026-10-15T06:28:47.190Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -196,7 +196,7 @@
           ],
           "id": "c331d53f43701d168858-29920e5dd68a342c7eee",
           "file": "phase1.spec.ts",
-          "line": 88,
+          "line": 95,
           "column": 1
         },
         {
@@ -215,12 +215,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1158,
+                  "duration": 2543,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-14T13:42:49.344Z",
+                  "startTime": "2026-10-15T06:28:49.446Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -230,7 +230,7 @@
           ],
           "id": "c331d53f43701d168858-a7ac5208df91c5bd3bfa",
           "file": "phase1.spec.ts",
-          "line": 111,
+          "line": 129,
           "column": 1
         },
         {
@@ -249,12 +249,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1807,
+                  "duration": 3232,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-14T13:42:50.510Z",
+                  "startTime": "2026-10-15T06:28:52.009Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -264,7 +264,7 @@
           ],
           "id": "c331d53f43701d168858-837534557cd230f6605e",
           "file": "phase1.spec.ts",
-          "line": 136,
+          "line": 154,
           "column": 1
         },
         {
@@ -283,12 +283,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2147,
+                  "duration": 3578,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-14T13:42:52.323Z",
+                  "startTime": "2026-10-15T06:28:55.251Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -298,7 +298,7 @@
           ],
           "id": "c331d53f43701d168858-89e58360a1769cbdc3d2",
           "file": "phase1.spec.ts",
-          "line": 165,
+          "line": 189,
           "column": 1
         },
         {
@@ -317,12 +317,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2234,
+                  "duration": 4249,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-14T13:42:54.476Z",
+                  "startTime": "2026-10-15T06:28:58.838Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -332,7 +332,7 @@
           ],
           "id": "c331d53f43701d168858-abfc6c6a0396ee951f09",
           "file": "phase1.spec.ts",
-          "line": 204,
+          "line": 228,
           "column": 1
         }
       ]
@@ -347,7 +347,7 @@
         {
           "title": "Phase 2 real-backend assessment workflow",
           "file": "phase2.spec.ts",
-          "line": 42,
+          "line": 60,
           "column": 15,
           "specs": [
             {
@@ -366,12 +366,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 3147,
+                      "duration": 5721,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-14T13:42:56.723Z",
+                      "startTime": "2026-10-15T06:29:03.105Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -381,7 +381,7 @@
               ],
               "id": "e4611f7184bd5eaa3983-be3029b9560ea3ce5bd9",
               "file": "phase2.spec.ts",
-              "line": 43,
+              "line": 61,
               "column": 3
             },
             {
@@ -400,12 +400,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 580,
+                      "duration": 1826,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-14T13:42:59.876Z",
+                      "startTime": "2026-10-15T06:29:08.838Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -415,7 +415,7 @@
               ],
               "id": "e4611f7184bd5eaa3983-d382892bf7e610270f22",
               "file": "phase2.spec.ts",
-              "line": 106,
+              "line": 127,
               "column": 3
             },
             {
@@ -434,12 +434,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1484,
+                      "duration": 2999,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-14T13:43:00.461Z",
+                      "startTime": "2026-10-15T06:29:10.675Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -449,7 +449,7 @@
               ],
               "id": "e4611f7184bd5eaa3983-2ec4aaeb65daaa426d0e",
               "file": "phase2.spec.ts",
-              "line": 119,
+              "line": 140,
               "column": 3
             },
             {
@@ -468,12 +468,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 594,
+                      "duration": 1970,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-14T13:43:01.951Z",
+                      "startTime": "2026-10-15T06:29:13.684Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -483,7 +483,7 @@
               ],
               "id": "e4611f7184bd5eaa3983-e8f8b92e0c84263e91d6",
               "file": "phase2.spec.ts",
-              "line": 140,
+              "line": 164,
               "column": 3
             },
             {
@@ -502,12 +502,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1327,
+                      "duration": 3315,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-14T13:43:02.550Z",
+                      "startTime": "2026-10-15T06:29:15.662Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -517,7 +517,7 @@
               ],
               "id": "e4611f7184bd5eaa3983-e44a933d694618a01a14",
               "file": "phase2.spec.ts",
-              "line": 160,
+              "line": 184,
               "column": 3
             },
             {
@@ -536,12 +536,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1696,
+                      "duration": 2980,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-14T13:43:03.883Z",
+                      "startTime": "2026-10-15T06:29:18.986Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -551,7 +551,7 @@
               ],
               "id": "e4611f7184bd5eaa3983-ffe2bba43192c7117c2b",
               "file": "phase2.spec.ts",
-              "line": 178,
+              "line": 202,
               "column": 3
             },
             {
@@ -570,12 +570,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 872,
+                      "duration": 1976,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-14T13:43:05.584Z",
+                      "startTime": "2026-10-15T06:29:21.975Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -585,7 +585,7 @@
               ],
               "id": "e4611f7184bd5eaa3983-bdd64d5d3649437ef092",
               "file": "phase2.spec.ts",
-              "line": 197,
+              "line": 221,
               "column": 3
             },
             {
@@ -604,12 +604,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 348,
+                      "duration": 995,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-14T13:43:06.462Z",
+                      "startTime": "2026-10-15T06:29:23.959Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -619,7 +619,7 @@
               ],
               "id": "e4611f7184bd5eaa3983-17ffccd958c0941059e7",
               "file": "phase2.spec.ts",
-              "line": 229,
+              "line": 253,
               "column": 3
             },
             {
@@ -638,12 +638,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1319,
+                      "duration": 2615,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-14T13:43:06.815Z",
+                      "startTime": "2026-10-15T06:29:24.964Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -653,7 +653,7 @@
               ],
               "id": "e4611f7184bd5eaa3983-bb4df68d2c23aff94611",
               "file": "phase2.spec.ts",
-              "line": 239,
+              "line": 263,
               "column": 3
             },
             {
@@ -672,12 +672,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 2784,
+                      "duration": 6448,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-14T13:43:08.140Z",
+                      "startTime": "2026-10-15T06:29:27.590Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -687,7 +687,126 @@
               ],
               "id": "e4611f7184bd5eaa3983-94d984942f04440ae79b",
               "file": "phase2.spec.ts",
-              "line": 270,
+              "line": 293,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "phase3.spec.ts",
+      "file": "phase3.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Phase 3 real-backend customization workflow",
+          "file": "phase3.spec.ts",
+          "line": 2,
+          "column": 15,
+          "specs": [
+            {
+              "title": "P3-E2E-01 required custom properties and saved views use real records",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 89,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-15T06:29:34.053Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "a64b8b583ae028ac2231-b7e328e63ecf8be14f6e",
+              "file": "phase3.spec.ts",
+              "line": 5,
+              "column": 3
+            },
+            {
+              "title": "P3-E2E-02 evidence bytes stay exact and restricted evidence is not searchable",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 61,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-15T06:29:34.150Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "a64b8b583ae028ac2231-1445a290c65f6eb71f98",
+              "file": "phase3.spec.ts",
+              "line": 72,
+              "column": 3
+            },
+            {
+              "title": "P3-E2E-03 import preview is non-mutating and quick capture/search work from the UI",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1490,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-15T06:29:34.219Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "a64b8b583ae028ac2231-0e1f12bac8def12d1068",
+              "file": "phase3.spec.ts",
+              "line": 99,
               "column": 3
             }
           ]
@@ -697,9 +816,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-14T13:42:43.159Z",
-    "duration": 27878.253,
-    "expected": 18,
+    "startTime": "2026-10-15T06:28:36.508Z",
+    "duration": 59357.711,
+    "expected": 21,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

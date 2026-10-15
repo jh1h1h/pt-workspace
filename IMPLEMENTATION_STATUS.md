@@ -1,6 +1,6 @@
 # Implementation status
 
-Updated 2026-10-15. **Phases 1 and 2 remain implemented; Phase 3 implementation is present but its full acceptance gate is blocked by one saved-view frontend test.**
+Updated 2026-10-15. **Phases 1–3 are implemented and the Phase 1–3 automated acceptance gate passes. Phase 4 has not started.**
 
 ## Implemented
 
@@ -8,9 +8,11 @@ Phase 1 foundations remain intact: engagement CRUD/isolation, task and specializ
 
 General pages now have an explicit visible registry kind backed by additive migrations `d1e2f3a4b5c6` and `e2f3a4b5c6d7`. Sidebar and child-page creation use a title modal; editor slash commands create-and-link a child or link an existing page without changing hierarchy. Record, task and Kanban filter/sort controls use compact Filter buttons and modal controls. The shared route header uses route-specific context, with “A quiet place to pick up where you left off.” reserved for Home and clickable hierarchy breadcrumbs on detail routes. Detail pages consolidate metadata, parent selection, pin/delete, editor block actions, linked-record creation and child creation into compact inline controls. Quick Capture remains available from Ctrl/Cmd+Shift+K without a floating trigger. Notes remains the bottom Home section on desktop and mobile.
 
-Phase 2 adds typed assets and explicit scope authorization; nine editable scope documents and additional pages; seventeen attack-surface types and explicit duplicate indicators; retained discovery observations; independent Testing Backlog with table and persistent drag/keyboard Kanban; Test Cases with separate execution/outcome; Candidate findings with explicit verification and protected Report Ready; evidence metadata/documents; editable default/custom test/finding templates; universal scoped UUID relationships with searchable atomic multiple linking, both-end display, backlinks and linked creation. Reusable TanStack tables provide search, filtering, sorting, pagination, inline edits, delete/restore and loading/error states. All details reuse Phase 1 editor, routing and autosave.
+Phase 2 behavior remains intact: typed assessment records, explicit scope authorization, append-only discovery provenance, independent backlog/test states, verified-finding lifecycle, templates and bidirectional links. Phase 3 adds additive migration `c9d4e5f60718` for typed custom properties, canonical workflow labels, saved views, document links, controlled evidence files, reusable content templates, FTS5 search and import provenance. Migrations `d1e2f3a4b5c6` and `e2f3a4b5c6d7` register and promote visible general pages without deleting existing rows.
 
-New registry, sequences and typed extension tables use additive Alembic migration b7fa36c2836a; existing Phase 1 rows remain unchanged. Composite foreign keys/triggers validate engagement/type integrity. Personal Task legacy links synchronize without completion cascades. No assessed target is contacted; runtime remains local.
+Implemented Phase 3 behavior includes all eight custom-property types with required/default/value/relation validation; stable rename and confirmation-required destructive conversion; saved-view create/edit/rename/default/duplicate/delete, live embedded views, visible/order/width configuration, allowlisted filtering/sorting/grouping, backend pagination, transactional revision-checked bulk edits and scoped CSV export; UUID mentions/wiki links and backlinks; searchable evidence/saved-view editor pickers, callouts, captions and block actions; controlled evidence upload/hash/deduplication/inert preview/exact download; engagement-scoped FTS5; Quick Capture; six reusable template examples; and preview/confirm passive imports for the five documented formats.
+
+Restricted evidence is download-only, excluded from preview/search and omitted from saved-view CSV exports. Uploaded test evidence is isolated in temporary E2E storage. No import, preview, editor embed or evidence operation sends a request to an assessed target.
 
 ## Verification evidence
 
@@ -20,33 +22,28 @@ The importer also accepts exact active engagement names, paginates the real enga
 
 Test Case entries no longer appear in the sidebar page tree or pinned list; the dedicated Test Cases navigation remains. Imported Test Case detail presents prerequisites, finding threshold, and steps first, with progress, evidence, and editing in disclosures. Phase 1–2 frontend component tests passed 27/27 on 2026-10-15, including sidebar and detail-route regressions; TypeScript, build, and mobile/desktop browser checks passed. ESLint still reports the pre-existing RecordTable hook-dependency warning. This does not change the separate Phase 3 saved-view acceptance blocker.
 
-Latest check on 2026-10-15 after the page-workflow and layout update: backend pytest passed 59/59, Phase 1–2 Vitest passed 25/25, and full Vitest passed 38/39. The backend document validator now round-trips Tiptap 3.31 link marks with nullable `title` attributes while retaining unsafe-scheme rejection; a non-mutating live-server probe confirmed the captured payload passes validation. TypeScript, Ruff, production build, page/slash interactions, modal filtering, and desktop/mobile visual checks passed. ESLint completed with one pre-existing `RecordTable.tsx` hook-dependency warning. `P3-C05 saved views can be created, selected, duplicated and deleted` remains blocked because the test observes no `deleteView` call; E2E was not rerun in this check.
+The Phase 3 saved-view failure and the RecordTable hook warning were subsequently fixed. Latest complete post-merge gate on 2026-10-15:
 
-| Suite | Passed | Failed | Skipped | Report |
-| --- | --- | --- | --- | --- |
-| Backend pytest | 44 | 0 | 0 | docs/backend-test-results.xml |
-| Frontend Vitest | 25 | 0 | 0 | docs/frontend-test-results.json |
-| Actual-backend Playwright | 18 | 0 | 0 | docs/e2e-test-results.json |
-| Total | 87 | 0 | 0 | Phase 1 and Phase 2 combined |
+| Suite | Passed | Failed | Skipped | Evidence |
+| --- | ---: | ---: | ---: | --- |
+| Backend pytest | 63 | 0 | 0 | `docs/backend-test-results.xml`; full `scripts/run.py checks` output |
+| Frontend Vitest | 42 | 0 | 0 | `docs/frontend-test-results.json` |
+| Actual-backend Playwright | 21 | 0 | 0 | `docs/e2e-test-results.json` |
+| Total automated tests | 126 | 0 | 0 | Phase 1–3 combined |
 
-Backend includes 23 Phase 1 and 21 Phase 2 tests; frontend includes 15 Phase 1 and 10 Phase 2 tests; E2E includes 8 Phase 1 and 10 Phase 2 tests. All required named acceptance cases run. TypeScript strict checking, ESLint, Ruff and production build pass. Fresh SQLite migration upgrade, repeated upgrade and Alembic schema check pass; Phase 2 migration preservation is exercised against every existing Phase 1 table row in P2-B19.
+TypeScript strict checking, ESLint, Ruff and the production Vite build pass. A fresh temporary SQLite database upgraded through `e2f3a4b5c6d7 (head)` and `alembic check` reported no upgrade operations. Alembic emitted one SQL-introspection warning while checking a composite foreign key, but the check exited successfully. The production build retains the known non-failing combined-editor chunk-size warning.
 
-The actual E2E suite ran directly in the agent using user-approved execution outside the socket-restricted sandbox. The final report records 18 expected, zero unexpected/skipped/flaky, 27.9 seconds. E2E starts actual FastAPI/Vite and a temporary migrated SQLite database; no successful API responses are mocked. P1-E07 deliberately aborts saves to verify recovery. Earlier failures are fixed.
+Playwright starts actual FastAPI and Vite servers against a fresh migrated temporary SQLite database and temporary evidence directory. No successful API response is mocked. The 21 tests comprise eight Phase 1, ten Phase 2 and three Phase 3 real-backend scenarios.
 
-Manual visual review on 2026-10-14: docs/home-preview.png, docs/editor-preview.png, docs/phase2-test-case-preview.png and docs/phase2-kanban-preview.png inspected. Neutral document layout, exact Home panels, structured properties, Completed/Inconclusive case, template headings, linked records and persisted Completed Kanban card are visible. Sidebar is internally scrollable; Kanban can scroll horizontally. Screenshots contain isolated fictional E2E data only.
+## Remaining Phase 3 limitations
 
-## Remaining scope and practical limitations
+- The single engagement Notes/Scratchpad document is intentionally not convertible into additional notes. This preserves SPEC §§3/5 and requirement P3-CONVERT is Removed; the prompt's selected-range conversion request conflicts with that source-of-truth decision.
+- Quick Capture supports Personal Task, Attack Surface, Testing Backlog item and Candidate Finding. General pages/extra “Notes” are intentionally excluded because the product has exactly one Notes document. If a record type has a required custom property without a default, full record creation must be used so the value can be supplied.
+- Saved-view grouping is persisted and drives supported Kanban/status presentation; table rendering does not add arbitrary multi-level grouped rows.
+- Evidence files created by a failed upload transaction are removed immediately. There is no automatic filesystem-wide orphan sweep because Phase 4 backup/recovery does not yet provide a safe way to distinguish abandoned bytes from recoverable/staged files.
+- Executable/binary formats are download-only; textual markup and HTTP previews are rendered as inert `text/plain` in a sandbox. HTTP decoding beyond the stored UTF-8-safe preview is not implemented as a separate transform.
+- Automated coverage is strongest at API/component boundaries plus three integrated Phase 3 scenarios. There is no exhaustive browser scenario for every custom-property type or every template button, though those API behaviors are covered by migrated-SQLite tests.
 
-- Evidence file uploads/storage, passive file previews and HTTP inspection remain Phase 3; Phase 2 evidence is metadata and document references.
-- Search is engagement-scoped title search. Custom properties, saved/customized views, bulk operations/CSV, full-text search, document mentions/wiki backlinks, Quick Capture, embedded views, attachments and richer editing remain Phase 3. Relationship backlinks already work.
-- Imports/provenance deduplication, immutable revisions, complete activity history/trash, backup/restore, Markdown/JSON/report exports and packaged deployment remain Phase 4.
-- Discovery provenance is immutable after capture; append a correction/new observation. Title and description remain editable. Duplicates are indicated; automatic/manual merge is not implemented or needed for the specified indicator alternative.
-- Browser shutdown cannot guarantee an asynchronous save. Failed content remains in memory with retry/download/review; there is no durable crash buffer. Wait for Saved before quitting. Undo history is session-local.
-- Soft deletion promotes child pages; restoration does not move them back. Deleted relationship targets retain history and avoid active broken links until recovered.
-- Windows-compatible scripts and PowerShell instructions are supplied; actual Windows execution has not been tested. Linux suites and actual servers are verified.
-- Vite reports a combined editor bundle above 500 KB; the production build succeeds. Final deployment packaging remains Phase 4.
-- Protected .git is not a writable initialized repository; lockfiles are present but no Git commit was created.
+## Phase 4 readiness
 
-## Handoff
-
-Read SPEC.md, AGENTS.md, README.md, docs/API.md and docs/REQUIREMENTS_MATRIX.md. Preserve all data and Phase 1–2 behavior; add migrations, use typed extensions and run both phases' suites. Never change Home's three panels or cascade completion. Do not begin Phase 3 without a new request.
+The Phase 3 acceptance gate is green and the repository is technically ready for a separately requested Phase 4. Do not begin Phase 4 implicitly. Phase 4 still owns immutable revision/activity history, comprehensive trash/purge, backup/restore, broader imports, Markdown/JSON/report exports and packaged deployment.

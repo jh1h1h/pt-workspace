@@ -1,0 +1,9 @@
+[
+  {
+    "url": "https://example.test/api/profile",
+    "method": "GET",
+    "title": "Profile API",
+    "authentication_context": "Standard user",
+    "source": "sanitized collection"
+  }
+]

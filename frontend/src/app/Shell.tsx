@@ -67,7 +67,7 @@ export function Shell() {
     };
     window.addEventListener("beforeunload", before);
     const shortcut = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setSearch((v) => !v);
       }
@@ -251,7 +251,7 @@ export function Shell() {
         </nav>
         {!collapsed ? (
           <div className="sidebar-footer">
-            <span className="local-dot" /> Local workspace · Phase 2
+            <span className="local-dot" /> Local workspace · Phase 3
             <Link to="/">Manage engagements</Link>
           </div>
         ) : null}

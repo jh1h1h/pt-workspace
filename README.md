@@ -1,6 +1,6 @@
 # VAPT Workspace
 
-Local personal workspace for web vulnerability-assessment documentation. Phases 1–2 provide personal documents/tasks plus Scope & Assets, Attack Surfaces, Testing Backlog, Test Cases, Findings, Evidence metadata, discovery observations, templates and bidirectional record links. It performs no scanning or target interaction. Read SPEC.md for the complete four-phase plan and IMPLEMENTATION_STATUS.md for current verification evidence.
+Local personal workspace for web vulnerability-assessment documentation. Phases 1–3 provide personal documents/tasks, typed assessment records, customization, passive evidence handling, full-text search, saved views, reusable templates and passive file imports. It performs no scanning or target interaction. Read SPEC.md for the complete four-phase plan and IMPLEMENTATION_STATUS.md for current verification evidence.
 
 ## Prerequisites
 
@@ -137,7 +137,7 @@ cd ..
 
 PowerShell uses `..\.venv\Scripts\python.exe` from backend/ and `.\.venv\Scripts\python.exe` from root. `checks` runs pytest, Vitest, TypeScript, ESLint, Ruff, production build and Playwright; it stops on a failed check.
 
-Backend tests migrate a fresh SQLite file per fixture. Playwright starts the **actual FastAPI backend** against a TemporaryDirectory SQLite file, migrates it, and starts Vite. It refuses to reuse existing servers so acceptance cannot touch workspace.db. Stop your development servers before E2E. Eighteen named Phase 1–2 acceptance tests run serially; the first verifies the initially empty engagement list. Successful responses are never mocked. P1-E07 intentionally aborts saves to exercise recovery. Results: frontend/test-results/results.json; failure traces: frontend/test-results/. No E2E suite can run in an environment that disallows loopback socket binding.
+Backend tests migrate a fresh SQLite file per fixture. Playwright starts the **actual FastAPI backend** against a TemporaryDirectory SQLite file and evidence directory, migrates it, and starts Vite. It refuses to reuse existing servers so acceptance cannot touch workspace.db. Stop your development servers before E2E. Twenty-one named Phase 1–3 acceptance tests run serially; the first verifies the initially empty engagement list. Successful responses are never mocked. P1-E07 intentionally aborts saves to exercise recovery. Results: docs/e2e-test-results.json; failure traces: frontend/test-results/. No E2E suite can run in an environment that disallows loopback socket binding.
 
 ## API and models
 
@@ -179,6 +179,22 @@ Open Scope & Assets and initialize the nine blank engagement documents when want
 
 Use the detail page’s Linked records **+ Add** menu to link an existing record, create the next workflow record, or create an independent Personal Task. Related records appear at both ends; Link existing supports searchable multiple selection. Detail pages keep hierarchy breadcrumbs in the shared header, metadata and parent selection inline, block movement in one editor menu, and child creation beside its section heading. Testing Backlog switches between table and Kanban; drag a card or use its keyboard-accessible status selector. Blocked requires a reason. Test execution and outcome have separate controls.
 
-Findings start Candidate/Unassigned. Move to Validating, enter a verification note and explicitly verify before Confirmed or Report Ready. Changing severity never validates a finding. Settings & Templates creates editable test/finding templates; select one at creation or designate the engagement default. Tables support title search, property filters, sorting, pagination, inline changes and trash/restore. Evidence currently stores documentation and metadata; attachments and passive HTTP inspection are reserved for Phase 3.
+Findings start Candidate/Unassigned. Move to Validating, enter a verification note and explicitly verify before Confirmed or Report Ready. Changing severity never validates a finding. Settings & Templates creates editable test/finding templates; select one at creation or designate the engagement default. Tables support title search, property filters, sorting, pagination, inline changes and trash/restore. Phase 3 adds controlled evidence attachments and passive HTTP inspection as described below.
 
-Existing databases upgrade through `python3 scripts/run.py migrate` or automatically before `dev`; no database replacement or seed is performed. Run Phase 2 tests individually with `pytest tests/test_phase2.py` from backend/, `npm test -- -t P2-` from frontend/, or `npx playwright test -g P2-` from frontend/. `python3 scripts/run.py checks` runs both phases. Phases 3–4 remain planned in SPEC.md.
+Existing databases upgrade through `python3 scripts/run.py migrate` or automatically before `dev`; no database replacement or seed is performed. Run Phase 2 tests individually with `pytest tests/test_phase2.py` from backend/, `npm test -- -t P2-` from frontend/, or `npx playwright test -g P2-` from frontend/. Phase 3 usage follows below; Phase 4 remains planned in SPEC.md.
+
+## Phase 3 workflow
+
+Settings & Templates manages typed custom properties, canonical workflow labels, reusable content templates and passive imports. Record modules provide persistent saved views, visible/reordered/resizable columns, allowlisted filters and sorts, bulk updates with revision checks, and CSV export. Ctrl/Cmd+K opens grouped full-text search; Ctrl/Cmd+Shift+K opens Quick Capture without navigating away. The editor supports stable mentions/wiki links, callouts, block movement/duplication, evidence image/file pickers and embedded saved views. Evidence uploads remain in controlled local storage, are hashed, and are previewed only as passive images or inert text. Restricted evidence is omitted from previews and search.
+
+Imports are always previewed before an explicit confirmation and never fetch a URL, replay traffic, execute file content or run a scanner. UTF-8 input is limited to 10 MB and 10,000 rows. Example files are in `docs/import-examples/`. Accepted schemas are:
+
+- Generic CSV (`csv`): header row; required `url` (aliases `endpoint`, `target`); optional `method`, `title`, `authentication_context` (alias `auth`) and `source`.
+- Generic JSON (`json`): an array of those objects, or an object with a `records` array.
+- Katana JSONL (`katana-jsonl`): one JSON object per line using the same fields.
+- Feroxbuster JSONL (`feroxbuster-jsonl`): one JSON object per line using the same fields; extra fields such as `status` are retained only in the source file and are not executed.
+- Sanitized HTTP exchange (`http-exchange`): inert UTF-8 text whose first line begins with an HTTP method or `HTTP/`; it is stored as HTTP evidence after confirmation.
+
+Methods are normalized to uppercase and must be GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, TRACE or CONNECT. Preview creates only an import-preview record, not assessment records. Confirmation is transactional. Reconfirming the same import is idempotent; importing a different source can append a distinct discovery observation without overwriting manual record notes.
+
+Run Phase 3 tests with `pytest tests/test_phase3.py` from `backend/`, `npm test -- -t P3-` from `frontend/`, or `npx playwright test e2e/phase3.spec.ts` from `frontend/`. `python3 scripts/run.py checks` runs the full Phase 1–3 gate. Phase 4 history, comprehensive trash/purge, backup/restore, report/Markdown/JSON export and packaged deployment are not implemented.

@@ -3,7 +3,7 @@ import { EditorContent, useEditor, type Editor, type JSONContent } from '@tiptap
 import { extensions } from './extensions';
 import { blockCommands } from './commands';
 import { Button } from '../components/ui/button';
-import { phase3Api, type SearchResult } from '../api/phase3';
+import { phase3Api, type SavedView, type SearchResult } from '../api/phase3';
 import { moveCurrentBlock } from './phase3Extensions';
 import { CreatePageDialog } from '../components/CreatePageDialog';
 import { Redo2, Undo2 } from 'lucide-react';
@@ -37,6 +37,11 @@ export function RichEditor({
   const [pageAction, setPageAction] = useState<'create' | 'link' | null>(null);
   const [pageSearch, setPageSearch] = useState('');
   const [pageResults, setPageResults] = useState<SearchResult[]>([]);
+  const [resourcePicker, setResourcePicker] = useState<'evidenceImage' | 'fileAttachment' | 'databaseView' | null>(null);
+  const [resourceSearch, setResourceSearch] = useState('');
+  const [evidenceResults, setEvidenceResults] = useState<SearchResult[]>([]);
+  const [viewResults, setViewResults] = useState<SavedView[]>([]);
+  const [resourceError, setResourceError] = useState('');
   const referenceQuery = reference?.query;
   const slashRef = useRef(slash);
   slashRef.current = slash;
@@ -48,6 +53,9 @@ export function RichEditor({
   referenceIndexRef.current = referenceIndex;
   const commands: { label: string; run: (editor: Editor) => void }[] = [
     ...blockCommands,
+    { label: 'Evidence image', run: () => setResourcePicker('evidenceImage') },
+    { label: 'File attachment', run: () => setResourcePicker('fileAttachment') },
+    { label: 'Database view', run: () => setResourcePicker('databaseView') },
     ...(parentPageId ? [{ label: 'Create child page', run: () => setPageAction('create' as const) }] : []),
     { label: 'Link page', run: () => setPageAction('link') }
   ];
@@ -92,6 +100,22 @@ export function RichEditor({
     const timer = window.setTimeout(() => void phase3Api.search(effectiveEngagementId, pageSearch || '*').then(results => setPageResults(results.filter(result => result.id !== parentPageId))).catch(() => setPageResults([])), 150);
     return () => window.clearTimeout(timer);
   }, [pageAction, pageSearch, effectiveEngagementId, parentPageId]);
+  useEffect(() => {
+    if (!resourcePicker || !effectiveEngagementId) return;
+    let active = true;
+    setResourceError('');
+    const timer = window.setTimeout(() => {
+      const load = resourcePicker === 'databaseView'
+        ? phase3Api.views(effectiveEngagementId).then(items => {
+            if (active) setViewResults(items.filter(item => item.name.toLowerCase().includes(resourceSearch.toLowerCase())));
+          })
+        : phase3Api.search(effectiveEngagementId, resourceSearch || '*', resourceSearch ? 'evidence' : '').then(items => {
+            if (active) setEvidenceResults(items.filter(item => item.kind === 'evidence'));
+          });
+      void load.catch(error => { if (active) setResourceError(error instanceof Error ? error.message : 'Unable to load records.'); });
+    }, 150);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [resourcePicker, resourceSearch, effectiveEngagementId]);
   function insertReference(target: SearchResult) {
     const current = referenceRef.current;
     if (!current || !editorRef.current) return;
@@ -111,6 +135,20 @@ export function RichEditor({
     editorRef.current?.chain().focus().insertContent({ type: 'wikiLink', attrs: { recordId: target.id, label: target.title } }).insertContent(' ').run();
     setPageAction(null);
     setPageSearch('');
+  }
+  function insertEvidence(target: SearchResult) {
+    if (!editorRef.current || !resourcePicker || resourcePicker === 'databaseView') return;
+    const content = resourcePicker === 'evidenceImage'
+      ? { type: 'evidenceImage', attrs: { evidenceId: target.id, alt: target.title, caption: target.title } }
+      : { type: 'fileAttachment', attrs: { evidenceId: target.id, label: target.title } };
+    editorRef.current.chain().focus().insertContent(content).run();
+    setResourcePicker(null);
+    setResourceSearch('');
+  }
+  function insertView(target: SavedView) {
+    editorRef.current?.chain().focus().insertContent({ type: 'databaseView', attrs: { viewId: target.id } }).run();
+    setResourcePicker(null);
+    setResourceSearch('');
   }
   const editor = useEditor({
     extensions: extensions(effectiveEngagementId),
@@ -225,6 +263,7 @@ export function RichEditor({
   {reference ? <div role="listbox" aria-label={reference.kind === 'mention' ? 'Mention records' : 'Link pages'} className="slash-menu">{referenceResults.length ? referenceResults.map((target, i) => <button type="button" role="option" aria-selected={i === referenceIndex} key={target.id} onMouseDown={e => e.preventDefault()} onClick={() => insertReference(target)}><strong>{target.title}</strong> <small>{target.kind} · {target.display_id}</small></button>) : <span>No matching records</span>}</div> : null}
   {pageAction === 'create' && parentPageId ? <CreatePageDialog eid={effectiveEngagementId} parentId={parentPageId} onClose={() => setPageAction(null)} onCreated={insertPageLink} /> : null}
   {pageAction === 'link' ? <div className="dialog-backdrop"><div className="dialog" role="dialog" aria-modal="true" aria-label="Link existing page"><h2>Link existing page</h2><input autoFocus aria-label="Search pages to link" placeholder="Search pages…" value={pageSearch} onChange={event => setPageSearch(event.target.value)} /><ul className="record-picker">{pageResults.map(result => <li key={result.id}><button type="button" onClick={() => insertPageLink(result)}><span>{result.title}<small>{result.kind} · {result.display_id}</small></span></button></li>)}</ul>{!pageResults.length ? <p className="muted">No matching pages.</p> : null}<Button variant="outline" onClick={() => setPageAction(null)}>Cancel</Button></div></div> : null}
+  {resourcePicker ? <div className="dialog-backdrop"><div className="dialog" role="dialog" aria-modal="true" aria-label="Insert workspace resource"><h2>{resourcePicker === 'databaseView' ? 'Insert saved database view' : resourcePicker === 'evidenceImage' ? 'Insert evidence image' : 'Insert evidence file'}</h2><input autoFocus aria-label="Search workspace resources" placeholder="Search…" value={resourceSearch} onChange={event => setResourceSearch(event.target.value)} />{resourceError ? <p role="alert">{resourceError}</p> : null}<ul className="record-picker">{resourcePicker === 'databaseView' ? viewResults.map(view => <li key={view.id}><button type="button" onClick={() => insertView(view)}><span>{view.name}<small>{view.record_type} · {view.view_type}</small></span></button></li>) : evidenceResults.map(result => <li key={result.id}><button type="button" onClick={() => insertEvidence(result)}><span>{result.title}<small>{result.display_id}</small></span></button></li>)}</ul>{!(resourcePicker === 'databaseView' ? viewResults : evidenceResults).length && !resourceError ? <p className="muted">No matching saved resources.</p> : null}<Button variant="outline" onClick={() => { setResourcePicker(null); setResourceSearch(''); }}>Cancel</Button></div></div> : null}
   <p className="editor-hint">Type / for blocks · @ to mention · [[ to link · Ctrl/⌘ B for bold · Ctrl/⌘ Z to undo</p>
  </div>;
 }

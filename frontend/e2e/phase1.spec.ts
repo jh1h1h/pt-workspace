@@ -6,21 +6,17 @@ async function engagement(page: Page, name: string) {
     name: 'Create engagement',
     exact: true
   }).click();
-  await expect(page.getByRole('heading', {
-    name: 'Home',
-    exact: true
-  })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Home', { exact: true })).toBeVisible();
 }
 async function note(page: Page, title: string) {
-  await page.getByRole('complementary',{name:'Workspace navigation'}).getByRole('link', {
-    name: 'All Pages',
-    exact: true
-  }).click();
-  await page.getByLabel('New page title').fill(title);
-  await page.getByRole('button', {
+  await page.getByRole('button', { name: 'New page', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Create page' });
+  await dialog.getByLabel('Page title').fill(title);
+  await dialog.getByRole('button', {
     name: 'Create page',
     exact: true
   }).click();
+  await expect(dialog).toHaveCount(0);
   await expect(page.getByLabel('Page title',{exact:true})).toHaveValue(title);
 }
 async function saved(page: Page) {
@@ -37,7 +33,7 @@ test('P1-E01 empty database creates engagement and note', async ({
   await engagement(page, 'E01 engagement');
   await page.screenshot({path:'../docs/home-preview.png',fullPage:true});
   await note(page, 'Initial note');
-  await expect(page.getByText('PAGE-0001 · note')).toBeVisible();
+  await expect(page.getByText('PAGE-0001 · general page')).toBeVisible();
 });
 test('P1-E02 note content survives reload', async ({
   page
@@ -59,8 +55,9 @@ test('P1-E03 completed personal task remains in My Tasks', async ({
   page
 }) => {
   await engagement(page, 'E03 engagement');
+  await page.getByRole('button', { name: 'Add task', exact: true }).click();
   await page.getByLabel('New personal task').fill('Review written scope');
-  await page.getByRole('button', {
+  await page.getByRole('dialog', { name: 'Add personal task' }).getByRole('button', {
     name: 'Add task',
     exact: true
   }).click();
@@ -83,11 +80,13 @@ test('P1-E04 nested pages and breadcrumbs', async ({
 }) => {
   await engagement(page, 'E04 engagement');
   await note(page, 'Parent');
-  await page.getByLabel('New child page title').fill('Child');
   await page.getByRole('button', {
-    name: 'Add child page',
+    name: '+ New child',
     exact: true
   }).click();
+  await page.getByRole('dialog', { name: 'Create child page' }).getByLabel('Page title').fill('Child');
+  await page.getByRole('dialog', { name: 'Create child page' }).getByRole('button', { name: 'Create page' }).click();
+  await page.getByRole('link', { name: /Child/, exact: false }).last().click();
   await expect(page.getByLabel('Page title',{exact:true})).toHaveValue('Child');
   await page.getByRole('navigation', {
     name: 'Breadcrumbs'
@@ -130,8 +129,9 @@ test('P1-E06 engagement switching isolates tasks and scratchpads', async ({
   await page.getByRole('textbox', {
     name: 'Scratchpad content'
   }).fill('Private to One');
+  await page.getByRole('button', { name: 'Add task', exact: true }).click();
   await page.getByLabel('New personal task').fill('One only');
-  await page.getByRole('button', {
+  await page.getByRole('dialog', { name: 'Add personal task' }).getByRole('button', {
     name: 'Add task',
     exact: true
   }).click();

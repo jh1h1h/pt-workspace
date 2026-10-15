@@ -7,7 +7,7 @@ export default defineConfig({
   retries: 0,
   timeout: 30000,
   reporter: [['list'], ['json', {
-    outputFile: 'test-results/results.json'
+    outputFile: '../docs/e2e-test-results.json'
   }]],
   use: {
     baseURL: 'http://127.0.0.1:5173',

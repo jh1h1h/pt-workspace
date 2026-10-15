@@ -11,7 +11,7 @@ Base URL: http://127.0.0.1:8000/api/v1. Interactive typed OpenAPI: /docs; machin
 | /backlog | backlog / BLG |
 | /test-cases | test_case / TST |
 | /findings | finding / FND |
-| /evidence | evidence / EVD (metadata/document only) |
+| /evidence | evidence / EVD (metadata/document plus optional controlled file) |
 | /scope-pages | scope / SCP |
 | /observations | observation / OBS |
 | /templates | template / TPL |
@@ -33,3 +33,32 @@ Lists return items,total,offset,limit; specialized default limit is 20, maximum 
 Create records with related_ids to link multiple same-engagement targets in the creation transaction; template_id optionally selects a matching same-engagement test/finding template. Exact field constraints and enums are published in OpenAPI and SPEC.md §14. Errors use error.code/message/details as applicable: 404 inaccessible/wrong-engagement, 409 stale revision/duplicate constraint, 422 invalid typed properties or lifecycle. Finding confirmation requires explicit verification proof; changing severity never changes status. Record/task completion never cascades.
 
 Persistence models are typed SQLAlchemy extensions to Page, a UUID registry, transactional identifier sequences and composite-FK relationships. Schema migration b7fa36c2836a is additive and backfills existing Phase 1 identities/legacy task links. No target request, replay or active execution endpoints exist.
+
+## Phase 3 endpoints
+
+All paths remain engagement scoped.
+
+| Resource path | Methods / behavior |
+| --- | --- |
+| /custom-properties | GET active/deleted definitions; POST typed definition |
+| /custom-properties/{id} | PATCH rename/type/options/default/required/order/visibility; DELETE soft-delete; POST /restore |
+| /records/{id}/custom-values | GET values/defaults; PUT /{property_id} validates and stores a typed value |
+| /saved-views | GET/POST persistent table or Kanban configurations |
+| /saved-views/{id} | PATCH rename/default/config; DELETE with UI confirmation; POST /duplicate |
+| /saved-views/{id}/records | GET filtered/sorted paginated live records |
+| /saved-views/{id}/export.csv | GET all matching rows, or `selected=id,id`; restricted evidence is excluded |
+| /bulk-update | POST selected IDs, per-row revisions, allowlisted field and value; atomic conflict behavior |
+| /workflow-options | GET/POST labels mapped to canonical task/backlog/finding states |
+| /records/{id}/workflow | PUT option and revision; finding verification rules still apply |
+| /search | GET `q`, optional `record_type`, optional `limit`; FTS5 over accessible engagement records |
+| /records/{id}/document-backlinks | GET mention/wiki backlinks by immutable UUID |
+| /quick-capture | POST task, surface, backlog or candidate finding without navigation |
+| /evidence-files | POST raw bytes with JSON `metadata` query and `X-Filename`; maximum 25 MB |
+| /evidence-files/{id} | GET stored metadata; GET /preview inert preview; GET /download exact bytes |
+| /content-templates | GET/POST reusable templates; POST /initialize six editable examples |
+| /content-templates/{id} | PATCH metadata; POST /duplicate; POST /instantiate; DELETE soft-delete |
+| /imports/preview | POST inert bytes with `format` and `filename`; validates without assessment-record writes |
+| /imports/confirm | POST `import_id`; transactional and idempotent |
+| /imports | GET engagement import history |
+
+Saved-view columns, filters, sorts and grouping fields are validated against page fields, the selected typed record schema, and active same-engagement custom-property IDs. Unknown client field names return 422 and are never interpolated into SQL. Exact import schemas and fixtures are documented in README and `docs/import-examples/`.
