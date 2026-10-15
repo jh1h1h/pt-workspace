@@ -88,6 +88,24 @@ python3 scripts/run.py seed
 
 This creates an engagement named **DEMO — Fictional assessment**, populates its Notes document, and creates two personal tasks; no fake findings, targets or scans. It is opt-in and idempotent. It preserves other engagements. For demo-only data, point VAPT_DATABASE_URL at a separate file first.
 
+## Import the application SSO Test Case checklist
+
+The local checklist in `tmp/edupass-login-test-cases.json` describes 27 single-purpose application-owned login tests. Keep future Test Case JSON files in ignored `tmp/` too; these checklists are not committed. Microsoft is out of scope. Inspect and adapt the prerequisites to your written authorization before testing. Do not paste raw login captures, authorization codes, tokens, or cookies into Test Cases. Some callback tests require an approved IdP fixture and should remain Blocked without one.
+
+With the local API running, preview the destination and exact-title skips from the repository root. This command makes no changes:
+
+```bash
+python3 scripts/import_test_cases.py tmp/edupass-login-test-cases.json 'pgw2026'
+```
+
+Once the destination and case titles look right, explicitly create the missing cases:
+
+```bash
+python3 scripts/import_test_cases.py tmp/edupass-login-test-cases.json 'pgw2026' --apply
+```
+
+Use your engagement's exact name in quotes (including capitalization), or its UUID from the engagement URL. If more than one active engagement has that name, the importer refuses to proceed and prints their UUIDs so you can choose explicitly. The importer uses only the loopback API, leaves existing Test Cases with identical titles untouched, and creates new cases as Not Started / Not Assessed. It does not create findings, contact assessed targets, or implement the separate scanner-import feature. A failed partial run can be resumed: preview again before retrying. Existing same-title records are skipped even if their content differs; review those records manually.
+
 ## Tests and checks
 
 From the root (replace python3 with py -3 on Windows):

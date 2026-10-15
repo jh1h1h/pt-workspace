@@ -117,6 +117,17 @@ describe('Phase 1 components', () => {
     expect(screen.getByRole('dialog', { name: 'Add personal task' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'New personal task' })).toBeInTheDocument();
   });
+  it('keeps Test Cases out of sidebar pages and pins', async () => {
+    vi.mocked(api.pages).mockResolvedValue([
+      page({ id: 'general', title: 'General page', page_type: 'page' }),
+      page({ id: 'test-case', title: 'SSO procedure', page_type: 'test_case', favorite: true, record: { kind: 'test_case', category: 'Authentication', execution_status: 'Not Started', assessment_outcome: 'Not Assessed', testing_notes: '' } })
+    ]);
+    renderHome(true);
+    const sidebar = screen.getByLabelText('Workspace navigation');
+    expect(await within(sidebar).findByRole('link', { name: /General page/ })).toBeInTheDocument();
+    expect(within(sidebar).queryByText(/SSO procedure/)).not.toBeInTheDocument();
+    expect(within(sidebar).getByRole('link', { name: 'Test Cases' })).toBeInTheDocument();
+  });
   it('sidebar page creation uses a modal and creates a visible page', async () => {
     const created = page({ id: 'new-page', title: 'Childless page', page_type: 'page' });
     vi.spyOn(api, 'createPage').mockResolvedValue(created);

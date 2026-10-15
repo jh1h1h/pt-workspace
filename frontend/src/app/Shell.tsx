@@ -106,6 +106,7 @@ export function Shell() {
     settings: "Workspace preferences, templates, recovery, and customization.",
   };
   const currentPage = pageId ? pages.data?.find((page) => page.id === pageId) : undefined;
+  const sidebarPages = pages.data?.filter((page) => page.record?.kind !== "test_case") ?? [];
   const pageAncestors = [];
   let parentId = currentPage?.parent_id;
   const seenParents = new Set<string>();
@@ -196,7 +197,7 @@ export function Shell() {
         {!collapsed ? (
           <>
             <p className="nav-group">PINNED</p>
-            {pages.data
+            {sidebarPages
               ?.filter((p) => p.favorite)
               .map((p) => (
                 <Link
@@ -207,7 +208,7 @@ export function Shell() {
                   ★ {p.title}
                 </Link>
               ))}
-            <PageTree pages={pages.data ?? []} label="PAGES" />
+            <PageTree pages={sidebarPages} label="PAGES" />
             <p className="nav-group">VAPT WORKSPACE</p>
             <nav>
               {vaptNav.map(([path, label, Icon]) => (

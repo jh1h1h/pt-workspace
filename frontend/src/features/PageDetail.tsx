@@ -16,6 +16,32 @@ import { Button } from '../components/ui/button';
 import { NewPageForm } from './Pages';
 import { EvidenceFileDetails, EvidenceUploader } from './phase3/Tools';
 import { WorkflowControl } from './phase3/TemplateManager';
+import type { Document } from '../api/types';
+import './test-case.css';
+
+function TestCaseBrief({ content }: { content: Document }) {
+  const sections = new Map<string, string[]>();
+  let heading = '';
+  function text(node: Document): string {
+    return node.text ?? node.content?.map(text).join('') ?? '';
+  }
+  for (const node of content.content ?? []) {
+    if (node.type === 'heading') {
+      heading = text(node);
+      sections.set(heading, []);
+    } else if (heading && text(node).trim()) {
+      sections.get(heading)?.push(text(node));
+    }
+  }
+  const steps = sections.get('Testing procedure');
+  const threshold = sections.get('Finding threshold');
+  if (!steps?.length || !threshold?.length) return null;
+  return <section className="test-case-brief" aria-label="Test instructions">
+    {sections.get('Prerequisites')?.length ? <div><h2>Before you begin</h2><ul>{sections.get('Prerequisites')?.map((item, index) => <li key={index}>{item}</li>)}</ul></div> : null}
+    <div className="test-case-threshold"><h2>When it becomes a finding</h2><ul>{threshold.map((condition, index) => <li key={index}>{condition}</li>)}</ul></div>
+    <div className="test-case-steps"><h2>Steps to perform</h2><ol>{steps.map((step, index) => <li key={index}>{step.replace(/^\d+\.\s/, '')}</li>)}</ol></div>
+  </section>;
+}
 export function PageDetail() {
   const {
     eid = '',
@@ -45,6 +71,7 @@ function Detail({
   const [parent, setParent] = useState(page.parent_id ?? '');
   const [favorite, setFavorite] = useState(page.favorite);
   const [task, setTask] = useState(page.task);
+  const [caseContent, setCaseContent] = useState(page.content);
   const [error, setError] = useState<unknown>();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -75,17 +102,18 @@ function Detail({
     }
   }
   const childPages = pages.data?.filter(p => p.parent_id === page.id) ?? [];
+  const isTestCase = page.record?.kind === 'test_case';
+  const hasBrief = isTestCase && page.content.content?.some(node => node.type === 'heading' && node.content?.some(child => child.text === 'Finding threshold'));
+  function updateTitle(value: string) {
+    setTitle(value);
+    if (value.trim()) save.change({ title: value });
+  }
   return <div className="document-width page-detail"><div className="page-title-row"><div className="title-line"><input className="icon-input" aria-label="Page icon" placeholder="▤" value={icon} maxLength={32} onChange={e => {
         setIcon(e.target.value);
         save.change({
           icon: e.target.value || null
         });
-      }} /><input aria-label="Page title" className="page-title" value={title} maxLength={300} onChange={e => {
-        setTitle(e.target.value);
-        if (e.target.value.trim()) save.change({
-          title: e.target.value
-        });
-      }} /></div><div className="page-title-actions"><Button variant="ghost" size="icon" aria-label={favorite ? 'Unpin page' : 'Pin page'} title={favorite ? 'Unpin page' : 'Pin page'} aria-pressed={favorite} onClick={() => {
+      }} />{isTestCase ? <textarea aria-label="Page title" className="page-title test-case-title" rows={2} value={title} maxLength={300} onChange={e => updateTitle(e.target.value)} /> : <input aria-label="Page title" className="page-title" value={title} maxLength={300} onChange={e => updateTitle(e.target.value)} />}</div><div className="page-title-actions"><Button variant="ghost" size="icon" aria-label={favorite ? 'Unpin page' : 'Pin page'} title={favorite ? 'Unpin page' : 'Pin page'} aria-pressed={favorite} onClick={() => {
         setFavorite(!favorite);
         save.change({
           favorite: !favorite
@@ -137,7 +165,14 @@ function Detail({
           save.change({
             parent_task_id: e.target.value || null
           });
-        }}><option value="">None</option>{pages.data?.filter(p => p.task && p.id !== page.id).map(p => <option key={p.id} value={p.id}>{p.title}</option>)}</select></label>{task.related_page_id ? <Link to={`/e/${page.engagement_id}/pages/${task.related_page_id}`}>Open related page ↗</Link> : null}<ul>{pages.data?.filter(p => p.task?.parent_task_id === page.id).map(p => <li key={p.id}><Link to={`/e/${page.engagement_id}/pages/${p.id}`}>{p.title}</Link></li>)}</ul></div> : null}<WorkflowControl page={page} />{page.record ? <RecordProperties page={page} save={save} /> : null}{page.record?.kind === 'finding' || page.record?.kind === 'test_case' ? <EvidenceUploader eid={page.engagement_id} related={page} /> : null}{page.record?.kind === 'evidence' ? <EvidenceFileDetails page={page} /> : null}<RichEditor content={page.content} onChange={content => save.change({
+        }}><option value="">None</option>{pages.data?.filter(p => p.task && p.id !== page.id).map(p => <option key={p.id} value={p.id}>{p.title}</option>)}</select></label>{task.related_page_id ? <Link to={`/e/${page.engagement_id}/pages/${task.related_page_id}`}>Open related page ↗</Link> : null}<ul>{pages.data?.filter(p => p.task?.parent_task_id === page.id).map(p => <li key={p.id}><Link to={`/e/${page.engagement_id}/pages/${p.id}`}>{p.title}</Link></li>)}</ul></div> : null}
+      {isTestCase ? <TestCaseBrief content={caseContent} /> : null}
+      {isTestCase ? <details className="test-case-more"><summary>Progress and assessment</summary><RecordProperties page={page} save={save} /><WorkflowControl page={page} /></details> : <><WorkflowControl page={page} />{page.record ? <RecordProperties page={page} save={save} /> : null}</>}
+      {page.record?.kind === 'finding' ? <EvidenceUploader eid={page.engagement_id} related={page} /> : null}
+      {page.record?.kind === 'evidence' ? <EvidenceFileDetails page={page} /> : null}
+      {isTestCase ? <details className="test-case-more"><summary>Attach evidence</summary><EvidenceUploader eid={page.engagement_id} related={page} /></details> : null}
+      {isTestCase ? <details className="test-case-more" open={!hasBrief}><summary>Edit full test case</summary><RichEditor content={page.content} onChange={content => { setCaseContent(content); save.change({ content }); }} engagementId={page.engagement_id} parentPageId={page.id} /></details> : <RichEditor content={page.content} onChange={content => save.change({
       content
-    })} engagementId={page.engagement_id} parentPageId={page.id} /><SaveFeedback save={save} />{page.record?.kind === 'surface' ? <DiscoveryPanel page={page} /> : null}<RelatedRecordsPanel page={page} /><section className="compact-panel child-pages-panel"><div className="panel-heading"><h2>Child pages <span className="panel-count">({childPages.length})</span></h2><NewPageForm eid={page.engagement_id} parentId={page.id} label="+ New child" /></div>{childPages.length ? <ul className="child-pages-list">{childPages.map(p => <li key={p.id}><Link to={`/e/${page.engagement_id}/pages/${p.id}`}>{p.icon || '▤'} {p.title}</Link></li>)}</ul> : <p className="empty">No child pages.</p>}</section>{error ? <ErrorMessage error={error} /> : null}{confirmDelete ? <div className="dialog-backdrop"><div role="dialog" aria-modal="true" aria-label="Delete page" className="dialog"><h2>Move this page to trash?</h2><p>Child pages move to the parent level. Linked records stay intact. Restore this page in Settings.</p><Button variant="destructive" disabled={busy} onClick={() => void remove()}>Move to trash</Button><Button variant="outline" onClick={() => setConfirmDelete(false)}>Cancel</Button></div></div> : null}</div>;
+      })} engagementId={page.engagement_id} parentPageId={page.id} />}
+      <SaveFeedback save={save} />{page.record?.kind === 'surface' ? <DiscoveryPanel page={page} /> : null}<RelatedRecordsPanel page={page} /><section className="compact-panel child-pages-panel"><div className="panel-heading"><h2>Child pages <span className="panel-count">({childPages.length})</span></h2><NewPageForm eid={page.engagement_id} parentId={page.id} label="+ New child" /></div>{childPages.length ? <ul className="child-pages-list">{childPages.map(p => <li key={p.id}><Link to={`/e/${page.engagement_id}/pages/${p.id}`}>{p.icon || '▤'} {p.title}</Link></li>)}</ul> : <p className="empty">No child pages.</p>}</section>{error ? <ErrorMessage error={error} /> : null}{confirmDelete ? <div className="dialog-backdrop"><div role="dialog" aria-modal="true" aria-label="Delete page" className="dialog"><h2>Move this page to trash?</h2><p>Child pages move to the parent level. Linked records stay intact. Restore this page in Settings.</p><Button variant="destructive" disabled={busy} onClick={() => void remove()}>Move to trash</Button><Button variant="outline" onClick={() => setConfirmDelete(false)}>Cancel</Button></div></div> : null}</div>;
 }
