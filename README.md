@@ -4,7 +4,7 @@ Local personal workspace for web vulnerability-assessment documentation. Phases 
 
 ## Prerequisites
 
-- Python 3.11+ with pip and venv (Linux Debian/Kali: install python3-venv if needed; virtualenv is an alternative).
+- Python 3.11–3.13 with pip and venv (Linux Debian/Kali: install python3-venv if needed; virtualenv is an alternative). The pinned pydantic-core does not support Python 3.14.
 - Node.js 22.12+ or 24 LTS and npm.
 - Chromium for Playwright (`npx playwright install chromium`). On Linux, missing browser OS libraries can be installed with `npx playwright install-deps chromium` using your system's administrative permissions.
 - Available loopback ports 8000 (API) and 5173 (frontend). No external account or database required.
@@ -25,6 +25,16 @@ python3 scripts/run.py dev
 ```
 
 Open http://127.0.0.1:5173. The launcher runs migrations, starts both servers bound to 127.0.0.1, and stops both on Ctrl+C. Dependencies/assets run locally after installation. There is no production seed on startup. Create an engagement on the first screen.
+
+On macOS with Homebrew Python 3.14 as the default, install `python@3.13` and create the launcher environment with that interpreter instead of `python3`:
+
+```bash
+brew install python@3.13
+python3.13 -m venv .venv
+.venv/bin/python -m pip install -r backend/requirements.lock.txt
+```
+
+An existing `venv/` created with Python 3.14 cannot be switched to 3.13 by activating it; leave it untouched and use the new `.venv/` for this project.
 
 ## Windows PowerShell quick start
 
