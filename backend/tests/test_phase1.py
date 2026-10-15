@@ -135,6 +135,38 @@ def test_P1_B04_document_roundtrip(client: TestClient) -> None:
     assert client.get(f"/api/v1/engagements/{eid}/pages/{p['id']}").json()["content"] == DOC
 
 
+def test_P1_B04_tiptap_link_attributes_roundtrip(client: TestClient) -> None:
+    eid = engagement(client)
+    doc = {
+        "type": "doc",
+        "content": [
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Microsoft login",
+                        "marks": [
+                            {
+                                "type": "link",
+                                "attrs": {
+                                    "href": "https://login.microsoftonline.com/example/oauth2/v2.0/authorize",
+                                    "target": "_blank",
+                                    "rel": "noopener noreferrer",
+                                    "class": None,
+                                    "title": None,
+                                },
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+    p = create_page(client, eid, content=doc)
+    assert client.get(f"/api/v1/engagements/{eid}/pages/{p['id']}").json()["content"] == doc
+
+
 def test_P1_B05_invalid_json(client: TestClient) -> None:
     eid = engagement(client)
     for doc in [

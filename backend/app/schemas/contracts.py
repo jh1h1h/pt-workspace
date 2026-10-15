@@ -108,13 +108,16 @@ def validate_document(doc: dict[str, Any]) -> dict[str, Any]:
             mark_attrs = mark.get("attrs", {})
             if not isinstance(mark_attrs, dict):
                 raise ValueError("Mark attributes must be an object")
-            allowed_mark_attrs = {"href", "target", "rel", "class"} if mark["type"] == "link" else set()
+            allowed_mark_attrs = {"href", "target", "rel", "class", "title"} if mark["type"] == "link" else set()
             if set(mark_attrs) - allowed_mark_attrs:
                 raise ValueError("Unsupported mark attributes; original content must be retained")
             if mark["type"] == "link":
                 href = mark.get("attrs", {}).get("href", "")
                 if not isinstance(href, str) or not href.startswith(("http://", "https://", "mailto:", "/")):
                     raise ValueError("Unsafe link scheme")
+                title = mark_attrs.get("title")
+                if title is not None and (not isinstance(title, str) or len(title) > 1000):
+                    raise ValueError("Invalid link title")
         for child in node.get("content", []):
             walk(child, depth + 1)
 

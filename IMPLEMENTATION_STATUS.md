@@ -14,7 +14,7 @@ New registry, sequences and typed extension tables use additive Alembic migratio
 
 ## Verification evidence
 
-Latest check on 2026-10-15 after the page-workflow and layout update: backend pytest passed 58/58, Phase 1–2 Vitest passed 25/25, and full Vitest passed 38/39. TypeScript, Ruff, production build, page/slash interactions, modal filtering, and desktop/mobile visual checks passed. ESLint completed with one pre-existing `RecordTable.tsx` hook-dependency warning. `P3-C05 saved views can be created, selected, duplicated and deleted` remains blocked because the test observes no `deleteView` call; E2E was not rerun in this check.
+Latest check on 2026-10-15 after the page-workflow and layout update: backend pytest passed 59/59, Phase 1–2 Vitest passed 25/25, and full Vitest passed 38/39. The backend document validator now round-trips Tiptap 3.31 link marks with nullable `title` attributes while retaining unsafe-scheme rejection; a non-mutating live-server probe confirmed the captured payload passes validation. TypeScript, Ruff, production build, page/slash interactions, modal filtering, and desktop/mobile visual checks passed. ESLint completed with one pre-existing `RecordTable.tsx` hook-dependency warning. `P3-C05 saved views can be created, selected, duplicated and deleted` remains blocked because the test observes no `deleteView` call; E2E was not rerun in this check.
 
 | Suite | Passed | Failed | Skipped | Report |
 | --- | --- | --- | --- | --- |
