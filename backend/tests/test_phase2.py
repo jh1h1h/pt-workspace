@@ -395,7 +395,7 @@ def test_P2_B19_phase1_migration_preserves_every_row(tmp_path: Path, monkeypatch
             assert connection.execute(text(f"SELECT * FROM {table} ORDER BY 1")).all() == rows
         assert connection.execute(text("PRAGMA foreign_key_check")).all() == []
     with Session(engine) as db:
-        assert db.get(RecordRegistry, ids[1]).kind == "note"
+        assert db.get(RecordRegistry, ids[1]).kind == "page"
         assert db.scalar(select(RecordRelationship).where(RecordRelationship.source_id == ids[2])).target_id == ids[1]
 
 

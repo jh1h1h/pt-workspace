@@ -2,7 +2,7 @@
 
 Base URL: http://127.0.0.1:8000/api/v1. Interactive typed OpenAPI: /docs; machine schema: /openapi.json. All record paths below are relative to /engagements/{eid}. README documents Phase 1 routes.
 
-`POST /engagements/{eid}/pages` creates a visible general page by default. Its public `page_type` is `page`; `parent_id` optionally creates it beneath an accessible same-engagement page. Explicit legacy `note`/`journal` values remain API compatibility inputs for recovery tests but are hidden from normal listing and search.
+`POST /engagements/{eid}/pages` creates a visible general page by default. Its public `page_type` is `page`; `parent_id` optionally creates it beneath an accessible same-engagement page. Upgrade migration `e2f3a4b5c6d7` promotes note documents that predate the visible general-page kind. Explicit legacy `note`/`journal` values created after that migration remain API compatibility inputs for recovery tests but are hidden from normal listing and search.
 
 | Resource path | Record kind / display prefix |
 | --- | --- |

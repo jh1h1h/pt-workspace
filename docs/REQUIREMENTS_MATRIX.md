@@ -6,7 +6,7 @@ Status vocabulary: Not Started, In Progress, Implemented, Verified, Blocked, Rem
 | --- | --- | --- | --- | --- | --- |
 | P1-ARCH | Monorepo; strict TypeScript; annotated Python; separated UI/API/domain/persistence | 1 | frontend/src; backend/app; tsconfig.json | TypeScript + Ruff checks | Verified |
 | P1-LOCAL | Local runtime, SQLite authority, no cloud/telemetry/target interaction | 1 | backend/app/core; frontend/src/api; scripts/run.py | P1-B01; manual source/dependency inspection | Verified |
-| P1-MIGRATIONS | Versioned repeatable migrations with data preservation | 1 | backend/migrations | P1-B14; test_migration_preserves_existing_documents_links_and_hierarchy | Verified |
+| P1-MIGRATIONS | Versioned repeatable migrations with data preservation and pre-existing note promotion | 1 | backend/migrations | P1-B14; test_migration_preserves_existing_documents_links_and_hierarchy; P2-B19; upgrade/downgrade copy check 2026-10-15 | Verified |
 | P1-DOCS | Complete four-phase SPEC, agent instructions, README/status/matrix | 1 | SPEC.md; AGENTS.md; README.md; docs | Manual document audit (2026-10-14) | Verified |
 | P1-DEPS | Pinned compatible dependencies and lockfiles; actual installs | 1 | frontend/package-lock.json; backend/requirements.lock.txt | npm ls; Python import/version checks; build | Verified |
 | P1-ENG-API | Engagement CRUD/archive/restore; isolated scoping | 1 | backend/app/api/engagements.py; repositories/workspace.py | P1-B01; P1-B08; test_archive_restore_engagement | Verified |
