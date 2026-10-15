@@ -120,7 +120,7 @@ describe('Phase 1 components', () => {
   it('keeps Test Cases out of sidebar pages and pins', async () => {
     vi.mocked(api.pages).mockResolvedValue([
       page({ id: 'general', title: 'General page', page_type: 'page' }),
-      page({ id: 'test-case', title: 'SSO procedure', page_type: 'test_case', favorite: true, record: { kind: 'test_case', category: 'Authentication', execution_status: 'Not Started', assessment_outcome: 'Not Assessed', testing_notes: '' } })
+      page({ id: 'test-case', title: 'SSO procedure', page_type: 'test_case', favorite: true, record: { kind: 'test_case', category: 'Authentication', priority: 'P2', execution_status: 'Not Started', assessment_outcome: 'Not Assessed', testing_notes: '' } })
     ]);
     renderHome(true);
     const sidebar = screen.getByLabelText('Workspace navigation');

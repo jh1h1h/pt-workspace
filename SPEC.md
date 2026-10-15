@@ -112,7 +112,7 @@ Independent planning records with their own status, priority, relations to asset
 
 ### Test Cases
 
-Track execution status separately from assessment outcome. Execution is Not Started, In Progress, Blocked, Completed, or Not Applicable. Assessment outcome independently is Not Assessed, No Issue Observed, Potential Finding, Finding Confirmed, or Inconclusive. Completed/Inconclusive is valid; Blocked never implies success. Keep execution notes, scope, related surfaces, findings, and evidence. Re-execution must retain useful historical context.
+Track execution priority (P1, P2, P3; default P2) separately from execution status and assessment outcome. Priority is visible, editable, filterable and sortable P1 first in Test Cases, and does not add cases to the Home Personal Priority Queue. Execution is Not Started, In Progress, Blocked, Completed, or Not Applicable. Assessment outcome independently is Not Assessed, No Issue Observed, Potential Finding, Finding Confirmed, or Inconclusive. Completed/Inconclusive is valid; Blocked never implies success. Keep execution notes, scope, related surfaces, findings, and evidence. Re-execution must retain useful historical context.
 
 ### Findings
 
@@ -202,7 +202,7 @@ Possible duplicates are explicitly indicated using normalized route, method, aut
 
 Backlog stores objective, category, independent P1/P2/P3 priority, Queued/In Progress/Blocked/Completed/Skipped status, blocker reason, due date and notes. Blocked requires a reason. Links can include multiple assets, surfaces and cases. Table and persistent drag-to-change-status Kanban are available with keyboard status controls. No linked completion cascades into Personal Tasks, tests or Home.
 
-Test cases store category, independent execution status/outcome, testing notes and procedure document. Default editable/removable headings are Objective, Prerequisites, Testing procedure, Observations, Result / outcome, Linked evidence, Linked findings, Related tasks or backlog items. Users select templates; Settings supports editable per-engagement test/finding templates and a single default per type. Existing records do not change when a template changes.
+Test cases store category, P1/P2/P3 execution priority, independent execution status/outcome, testing notes and procedure document. Default editable/removable headings are Objective, Prerequisites, Testing procedure, Observations, Result / outcome, Linked evidence, Linked findings, Related tasks or backlog items. Users select templates; Settings supports editable per-engagement test/finding templates and a single default per type. Existing records do not change when a template changes.
 
 Findings default Candidate and Unassigned. Fields include vulnerability category, optional CWE/OWASP, severity (Critical, High, Medium, Low, Informational, Unassigned), optional CVSS score 0–10/vector/rationale and document. Default removable sections are Summary, Description, Affected components, Prerequisites, Reproduction, Expected behaviour, Observed behaviour, Security impact, Evidence, Remediation, References, Validation notes.
 

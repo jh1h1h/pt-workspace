@@ -21,7 +21,7 @@ function record(id:string,properties:Properties):Page{return page({id,title:id,d
 const asset=()=>record('Application',{kind:'asset',asset_type:'Application',hostname_url:'app.example.test',environment:'Staging',scope_state:'Pending Confirmation',authentication_requirements:'',application_owner:null,authorization_confirmed:false,approval_reference:null,tags:[]});
 const surface=(id='Surface',status:'To Review'|'Reviewed'='To Review')=>record(id,{kind:'surface',surface_type:'HTTP endpoint',url_route:'/account',http_method:'GET',parameter_name:null,parameter_location:null,authentication_state:'anonymous',roles:[],status,tags:[],duplicate_ids:[]});
 const backlog=()=>record('Assess authorization',{kind:'backlog',objective:'Review boundary',category:'Authorization',priority:'P1',status:'Queued',blocker_reason:null,due_date:null});
-const testCase=()=>record('Boundary test',{kind:'test_case',category:'Authorization',execution_status:'Not Started',assessment_outcome:'Not Assessed',testing_notes:''});
+const testCase=()=>record('Boundary test',{kind:'test_case',category:'Authorization',priority:'P2',execution_status:'Not Started',assessment_outcome:'Not Assessed',testing_notes:''});
 const finding=()=>record('Finding candidate',{kind:'finding',vulnerability_category:'Authorization',cwe:null,owasp:null,validation_status:'Candidate',severity:'Unassigned',cvss_score:null,cvss_vector:null,severity_rationale:null,verified_at:null,verification_note:''});
 let rows:Page[];let links:Relationship[];
 function mount(element:ReactNode,detail=false){const client=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}});const router=createMemoryRouter([{path:detail?'/e/:eid/pages/:pid':'/e/:eid/*',element}],{initialEntries:[detail?'/e/e1/pages/Boundary%20test':'/e/e1/home']});return render(<QueryClientProvider client={client}><RouterProvider router={router}/></QueryClientProvider>);}
@@ -45,6 +45,18 @@ it('P2-F03 multiple observations retain historical classifications',async()=>{co
 it('P2-F04 backlog has working table and Kanban status controls',async()=>{mount(<RecordModule kind="backlog"/>);await screen.findByRole('table',{name:'Testing Backlog'});await userEvent.click(screen.getByRole('tab',{name:'Kanban'}));const queued=await screen.findByRole('group',{name:'Queued column'});await within(queued).findByRole('link',{name:'Assess authorization'});expect(screen.getAllByRole('group').filter(e=>e.getAttribute('aria-label')?.endsWith('column'))).toHaveLength(5);});
 it('P2-F05 Personal Tasks and Backlog stay separate in Home',async()=>{vi.mocked(api.tasks).mockResolvedValue([task('Personal only','P2'),backlog()]);mount(<Home/>);const queue=screen.getByRole('region',{name:'Priority Queue'});await within(queue).findByRole('checkbox',{name:'Complete Personal only'});expect(within(queue).queryByText('Assess authorization')).not.toBeInTheDocument();});
 it('P2-F06 execution and outcome edit independently',async()=>{const p=testCase(),save=saveMock();mount(<RecordProperties page={p} save={save}/>);await userEvent.selectOptions(screen.getByLabelText('Execution status'),'Completed');expect(screen.getByLabelText('Assessment outcome')).toHaveValue('Not Assessed');await userEvent.selectOptions(screen.getByLabelText('Assessment outcome'),'Inconclusive');expect(screen.getByLabelText('Execution status')).toHaveValue('Completed');expect(save.change).toHaveBeenCalledWith({execution_status:'Completed'});expect(save.change).toHaveBeenCalledWith({assessment_outcome:'Inconclusive'});});
+it('Test Cases show priority and expose sorting and filtering',async()=>{
+ mount(<RecordModule kind="test_case"/>);
+ const table=await screen.findByRole('table',{name:'Test Cases'});
+ expect(within(table).getByRole('button',{name:'Sort Priority'})).toBeInTheDocument();
+ expect(within(table).getByLabelText('Priority for TEST_CASE-0001')).toHaveValue('P2');
+ await waitFor(()=>expect(recordApi.list).toHaveBeenCalledWith('e1','test_case',expect.objectContaining({sort:'priority',direction:'asc'})));
+ await userEvent.click(within(table).getByRole('button',{name:'Sort Priority'}));
+ await waitFor(()=>expect(recordApi.list).toHaveBeenCalledWith('e1','test_case',expect.objectContaining({sort:'priority',direction:'desc'})));
+ await userEvent.click(screen.getByRole('button',{name:'Filter'}));
+ await userEvent.selectOptions(screen.getByLabelText('Filter Priority'),'P2');
+ await waitFor(()=>expect(recordApi.list).toHaveBeenCalledWith('e1','test_case',expect.objectContaining({filters:JSON.stringify({priority:'P2'})})));
+});
 it('imported Test Case leads with actions and finding criteria',async()=>{
  const p=testCase();p.content={type:'doc',content:[
   {type:'heading',attrs:{level:2},content:[{type:'text',text:'Prerequisites'}]},

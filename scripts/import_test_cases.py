@@ -10,6 +10,7 @@ from uuid import UUID
 
 
 SECTIONS = ("prerequisites", "actions", "expected", "finding_condition", "evidence")
+PRIORITIES = ("P1", "P2", "P3")
 LABELS = {
     "prerequisites": "Prerequisites",
     "actions": "Testing procedure",
@@ -25,8 +26,10 @@ def load_cases(path: Path) -> list[dict]:
         raise ValueError("Expected a nonempty JSON array of test cases")
     titles = set()
     for index, case in enumerate(cases, 1):
-        if not isinstance(case, dict) or set(case) != {"title", "category", *SECTIONS}:
-            raise ValueError(f"Case {index}: expected title, category and all five procedure sections")
+        if not isinstance(case, dict) or set(case) not in ({"title", "category", *SECTIONS}, {"title", "category", "priority", *SECTIONS}):
+            raise ValueError(f"Case {index}: expected title, category, optional priority and all five procedure sections")
+        if "priority" in case and case["priority"] not in PRIORITIES:
+            raise ValueError(f"Case {index}: priority must be P1, P2 or P3")
         if any(not isinstance(case[key], str) or not case[key].strip() for key in ("title", "category")):
             raise ValueError(f"Case {index}: title and category must be nonempty strings")
         if len(case["title"]) > 300 or len(case["category"]) > 200:
@@ -39,6 +42,11 @@ def load_cases(path: Path) -> list[dict]:
         if case["title"] in titles:
             raise ValueError(f"Duplicate title in file: {case['title']}")
         titles.add(case["title"])
+    if any("priority" in case for case in cases):
+        if any("priority" not in case for case in cases):
+            raise ValueError("All cases must have a priority when any case has one")
+        if [case["priority"] for case in cases] != sorted((case["priority"] for case in cases), key=PRIORITIES.index):
+            raise ValueError("Cases must be ordered P1, then P2, then P3")
     return cases
 
 
@@ -117,6 +125,15 @@ def main() -> None:
     try:
         cases = load_cases(args.file)
         base = args.api.rstrip("/")
+        if any("priority" in case for case in cases):
+            schema = api_request(base, "/openapi.json")
+            fields = schema.get("components", {}).get("schemas", {}).get("TestCreate", {}).get("properties", {})
+            if "priority" not in fields:
+                raise RuntimeError(
+                    "The running API does not support Test Case priority. Stop the old dev server and "
+                    "restart with 'python3 scripts/run.py dev' so its migration and updated code load; "
+                    "then preview the import again."
+                )
         engagement = resolve_engagement(base, args.engagement)
         eid = engagement["id"]
         titles = existing_titles(base, eid)
@@ -130,6 +147,7 @@ def main() -> None:
         for case in pending:
             created = api_request(base, f"/api/v1/engagements/{eid}/test-cases", {
                 "title": case["title"], "category": case["category"], "content": document(case),
+                "priority": case.get("priority", "P2"),
                 "execution_status": "Not Started", "assessment_outcome": "Not Assessed",
             })
             print(f"Created {created['display_id']}: {created['title']}")

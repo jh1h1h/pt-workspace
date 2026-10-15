@@ -25,4 +25,4 @@ with TemporaryDirectory(prefix="vapt-e2e-") as temp:
         cwd=ROOT,
         check=True,
     )
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000)
+    uvicorn.run("app.main:app", host="127.0.0.1", port=int(os.getenv("VAPT_E2E_API_PORT", "8000")))

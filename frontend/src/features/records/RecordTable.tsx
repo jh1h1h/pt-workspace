@@ -138,7 +138,7 @@ export function RecordTable({
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
   const [sorting, setSorting] = useState<SortingState>([{
-    id: 'created_at',
+    id: kind === 'test_case' ? 'priority' : 'created_at',
     desc: false
   }]);
   const [filters, setFilters] = useState<ColumnFiltersState>([]);

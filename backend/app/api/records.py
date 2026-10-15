@@ -30,7 +30,7 @@ FILTERS = {
     "asset": {"asset_type", "scope_state", "environment"},
     "surface": {"surface_type", "status", "http_method", "authentication_state"},
     "backlog": {"status", "priority", "category"},
-    "test_case": {"execution_status", "assessment_outcome", "category"},
+    "test_case": {"priority", "execution_status", "assessment_outcome", "category"},
     "finding": {"validation_status", "severity", "vulnerability_category"},
     "evidence": {"sanitization_state", "evidence_type", "review_state", "source_tool"},
     "scope": {"section"},

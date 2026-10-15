@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     host: '127.0.0.1',
     proxy: {
-      '/api': 'http://127.0.0.1:8000'
+      '/api': `http://127.0.0.1:${process.env.VAPT_E2E_API_PORT ?? '8000'}`
     }
   },
   test: {

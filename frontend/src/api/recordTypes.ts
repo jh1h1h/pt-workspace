@@ -54,6 +54,7 @@ export interface BacklogProperties {
 export interface TestProperties {
   kind: 'test_case';
   category: string;
+  priority: 'P1' | 'P2' | 'P3';
   execution_status: ExecutionStatus;
   assessment_outcome: AssessmentOutcome;
   testing_notes: string;

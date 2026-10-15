@@ -363,6 +363,22 @@ def test_P2_B18_pagination_filters_sort(client: TestClient) -> None:
     assert client.get(f"/api/v1/engagements/{eid}/backlog?sort=DROP%20TABLE").status_code == 422
 
 
+def test_test_case_priority_create_update_filter_sort(client: TestClient) -> None:
+    eid = engagement(client)
+    base = f"/api/v1/engagements/{eid}/test-cases"
+    medium = create(client, eid, "test_case", "Medium")
+    low = create(client, eid, "test_case", "Low", priority="P3")
+    high = create(client, eid, "test_case", "High", priority="P1")
+    assert medium["record"]["priority"] == "P2"
+    assert client.get(f"{base}?sort=priority").json()["items"][0]["id"] == high["id"]
+    assert [item["record"]["priority"] for item in client.get(f"{base}?sort=priority&direction=desc").json()["items"]] == ["P3", "P2", "P1"]
+    assert [item["id"] for item in client.get(f"{base}?priority=P1").json()["items"]] == [high["id"]]
+    assert [item["id"] for item in client.get(f'{base}?filters={{"priority":"P3"}}').json()["items"]] == [low["id"]]
+    assert update(client, medium, priority="P1")["record"]["priority"] == "P1"
+    assert client.get(f"{base}/{medium['id']}").json()["record"]["priority"] == "P1"
+    assert client.post(base, json={"title": "Invalid", "priority": "P4"}).status_code == 422
+
+
 def test_P2_B19_phase1_migration_preserves_every_row(tmp_path: Path, monkeypatch: Any) -> None:
     url = f"sqlite:///{tmp_path / 'phase1.db'}"
     monkeypatch.setenv("VAPT_DATABASE_URL", url)

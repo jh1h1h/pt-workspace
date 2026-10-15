@@ -79,6 +79,7 @@ class BacklogFields(Fields):
 
 class TestFields(Fields):
     category: str = Field(default="", max_length=200)
+    priority: Literal["P1", "P2", "P3"] = "P2"
     execution_status: ExecutionStatus = "Not Started"
     assessment_outcome: AssessmentOutcome = "Not Assessed"
     testing_notes: str = Field(default="", max_length=20000)

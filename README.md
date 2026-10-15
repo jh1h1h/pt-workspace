@@ -90,7 +90,7 @@ This creates an engagement named **DEMO — Fictional assessment**, populates it
 
 ## Import the application SSO Test Case checklist
 
-The local checklist in `tmp/edupass-login-test-cases.json` describes 27 single-purpose application-owned login tests. Keep future Test Case JSON files in ignored `tmp/` too; these checklists are not committed. Microsoft is out of scope. Inspect and adapt the prerequisites to your written authorization before testing. Do not paste raw login captures, authorization codes, tokens, or cookies into Test Cases. Some callback tests require an approved IdP fixture and should remain Blocked without one.
+The local checklist in `tmp/edupass-login-test-cases.json` describes 40 single-purpose application-owned staff and HQ login/OTP tests, ordered by impact-based priority (28 P1, 12 P2). Each case's Category names the type of vulnerability it tests, such as open redirect, session fixation, or OTP replay; a test label is not a confirmed finding. SSO-02A remains P2 while SSO-02B is P1 for its conditional authorization-code delivery impact, not because a controllable callback input is known. Priority and category are persisted on newly imported Test Cases and shown in the Test Cases table and detail view; the table defaults to P1-first and supports priority sorting and filtering. Keep future Test Case JSON files in ignored `tmp/` too; these checklists are not committed. Microsoft is out of scope. Inspect and adapt the prerequisites to your written authorization before testing. Do not paste raw login captures, authorization codes, tokens, cookies, or OTPs into Test Cases. Callback and negative OTP tests require an approved fixture and should remain Blocked without one.
 
 With the local API running, preview the destination and exact-title skips from the repository root. This command makes no changes:
 
@@ -105,6 +105,8 @@ python3 scripts/import_test_cases.py tmp/edupass-login-test-cases.json 'pgw2026'
 ```
 
 Use your engagement's exact name in quotes (including capitalization), or its UUID from the engagement URL. If more than one active engagement has that name, the importer refuses to proceed and prints their UUIDs so you can choose explicitly. The importer uses only the loopback API, leaves existing Test Cases with identical titles untouched, and creates new cases as Not Started / Not Assessed. It does not create findings, contact assessed targets, or implement the separate scanner-import feature. A failed partial run can be resumed: preview again before retrying. Existing same-title records are skipped even if their content differs; review those records manually.
+
+If import reports that the running API does not support Test Case priority, stop the existing dev server and restart it with `python3 scripts/run.py dev` from the repository root. Startup applies the additive database migration and loads the current backend code. Then preview the import again before using `--apply`; do not run a seed or remove the existing database.
 
 ## Tests and checks
 

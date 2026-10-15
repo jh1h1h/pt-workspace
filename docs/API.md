@@ -20,6 +20,8 @@ Each resource provides GET/POST collection, GET/PATCH/DELETE /{pid}, POST /{pid}
 
 Lists return items,total,offset,limit; specialized default limit is 20, maximum 200. Parameters: q (title search), offset, limit, sort, direction asc/desc, deleted, status/priority/severity/classification/surface_id where applicable; filters is a JSON object of at most ten allowlisted field/string pairs. Unsupported properties/sorts/filters return 422. No arbitrary SQL is accepted. All lookup and mutation paths enforce engagement scope.
 
+Test Cases persist `priority` as P1, P2 or P3 (default P2). The Test Cases list supports `priority=P1`, `filters={"priority":"P1"}`, and `sort=priority&direction=asc` for highest-first ordering. This execution priority is independent of Personal Tasks and Testing Backlog.
+
 | Additional route | Method / body |
 | --- | --- |
 | /scope-pages/initialize | POST; idempotently creates missing nine scope documents |
