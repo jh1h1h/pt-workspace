@@ -8,14 +8,14 @@ import { saves } from '../../hooks/saveCoordinator';
 import { Button } from '../../components/ui/button';
 import { Empty, ErrorMessage, Loading } from '../../components/Feedback';
 
-const templateTypes = ['note', 'journal', 'surface', 'test_case', 'finding', 'backlog', 'task'];
+const templateTypes = ['surface', 'test_case', 'finding', 'backlog', 'task'];
 
 export function TemplateManager({ eid }: { eid: string }) {
   const client = useQueryClient();
   const navigate = useNavigate();
   const query = useQuery({ queryKey: ['workspace', eid, 'content-templates'], queryFn: () => phase3Api.contentTemplates(eid) });
   const [name, setName] = useState('');
-  const [kind, setKind] = useState('note');
+  const [kind, setKind] = useState('surface');
   const [instantiate, setInstantiate] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [remove, setRemove] = useState<string | null>(null);

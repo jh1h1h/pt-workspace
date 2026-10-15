@@ -189,7 +189,7 @@ class EngagementOut(BaseModel):
 
 class PageCreate(StrictModel):
     title: str = Field(min_length=1, max_length=300)
-    page_type: Literal["note", "journal"] = "note"
+    page_type: Literal["page", "note", "journal"] = "page"
     parent_id: str | None = None
     icon: str | None = Field(default=None, max_length=32)
     journal_date: date | None = None

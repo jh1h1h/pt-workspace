@@ -21,7 +21,13 @@ def check_parent(db: Session, eid: str, pid: str | None, parent: str | None) -> 
         parent = ancestor.parent_id
 
 
-def create_page(db: Session, engagement: Engagement, values: dict[str, Any], task: bool = False) -> Page:
+def create_page(
+    db: Session,
+    engagement: Engagement,
+    values: dict[str, Any],
+    task: bool = False,
+    registry_kind: str | None = None,
+) -> Page:
     # Reserve the sequence under the same transaction as insertion.
     field = "next_task" if task else "next_page"
     sequence = (
@@ -43,7 +49,7 @@ def create_page(db: Session, engagement: Engagement, values: dict[str, Any], tas
     db.flush()
     from app.services.registry import register_page
 
-    register_page(db, entity)
+    register_page(db, entity, registry_kind)
     return entity
 
 

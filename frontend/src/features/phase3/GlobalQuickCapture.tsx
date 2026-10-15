@@ -16,5 +16,5 @@ export function GlobalQuickCapture() {
     return () => window.removeEventListener('keydown', shortcut);
   }, []);
   if (!eid) return null;
-  return <><button className="quick-capture-button" type="button" aria-label="Quick Capture" onClick={() => setOpen(true)}>＋ Quick Capture <kbd>⌘⇧K</kbd></button>{open ? <QuickCapture eid={eid} related={related} onClose={() => setOpen(false)} /> : null}</>;
+  return open ? <QuickCapture eid={eid} related={related} onClose={() => setOpen(false)} /> : null;
 }

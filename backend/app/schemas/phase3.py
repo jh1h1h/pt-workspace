@@ -87,15 +87,8 @@ class WorkflowApply(Strict):
     revision: int = Field(ge=1)
 
 
-class ScratchConvert(Strict):
-    revision: int = Field(ge=1)
-    title: str = Field(min_length=1, max_length=300)
-    content: dict[str, Any] | None = None
-    clear: bool = False
-
-
 class QuickCapture(Strict):
-    kind: Literal["task", "note", "surface", "backlog", "finding"]
+    kind: Literal["task", "surface", "backlog", "finding"]
     title: str = Field(min_length=1, max_length=300)
     related_id: str | None = None
     priority: Literal["P1", "P2", "P3"] = "P2"
@@ -124,7 +117,7 @@ class EvidenceMetadata(Strict):
 
 class ReusableTemplateCreate(Strict):
     name: str = Field(min_length=1, max_length=120)
-    record_type: Literal["note", "journal", "surface", "test_case", "finding", "backlog", "task"]
+    record_type: Literal["surface", "test_case", "finding", "backlog", "task"]
     content: dict[str, Any]
     default_properties: dict[str, Any] = Field(default_factory=dict)
 

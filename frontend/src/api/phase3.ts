@@ -38,7 +38,6 @@ export const phase3Api = {
   viewRecords: (eid: string, id: string) => request<Listing<Page>>(`${root(eid)}/saved-views/${id}/records`),
   bulk: (eid: string, ids: string[], revisions: Record<string, number>, field: string, value: unknown) => request<Page[]>(`${root(eid)}/bulk-update`, json('POST', { ids, revisions, field, value })),
   backlinks: (eid: string, id: string) => request<DocumentBacklink[]>(`${root(eid)}/records/${id}/document-backlinks`),
-  convertScratchpad: (page: Page, title: string, clear: boolean, content?: Page['content']) => request<Page>(`${root(page.engagement_id)}/scratchpad/convert`, json('POST', { revision: page.revision, title, clear, ...(content ? { content } : {}) })),
   quickCapture: (eid: string, kind: string, title: string, related_id?: string, priority = 'P2') => request<Page>(`${root(eid)}/quick-capture`, json('POST', { kind, title, related_id, priority })),
   uploadEvidence: async (eid: string, file: File, metadata: Record<string, unknown>) => {
     const response = await fetch(`/api/v1${root(eid)}/evidence-files?metadata=${encodeURIComponent(JSON.stringify(metadata))}`, { method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream', 'X-Filename': file.name }, body: file });

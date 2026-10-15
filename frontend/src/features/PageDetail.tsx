@@ -1,10 +1,10 @@
 import { RecordProperties } from './records/RecordProperties';
 import { RelatedRecordsPanel } from './records/RelatedRecordsPanel';
 import { DiscoveryPanel } from './records/DiscoveryPanel';
-import { configs, moduleRoute } from './records/config';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { MoreHorizontal, Star } from 'lucide-react';
 import { api } from '../api/client';
 import { keys, usePages, useRefresh } from '../api/queries';
 import type { Page, Priority, Status } from '../api/types';
@@ -51,16 +51,6 @@ function Detail({
   const pages = usePages(page.engagement_id);
   const refresh = useRefresh(page.engagement_id);
   const navigate = useNavigate();
-  const ancestors: Page[] = [];
-  let ancestor = page.parent_id;
-  const seen = new Set([page.id]);
-  while (ancestor && !seen.has(ancestor)) {
-    seen.add(ancestor);
-    const p = pages.data?.find(p => p.id === ancestor);
-    if (!p) break;
-    ancestors.unshift(p);
-    ancestor = p.parent_id;
-  }
   function descendant(p: Page) {
     let parent = p.parent_id;
     const visited = new Set<string>();
@@ -84,12 +74,8 @@ function Detail({
       setBusy(false);
     }
   }
-  return <div className="document-width page-detail"><nav aria-label="Breadcrumbs" className="breadcrumbs"><Link to={`/e/${page.engagement_id}/pages`}>All Pages</Link>{page.record ? <span> / <Link to={`/e/${page.engagement_id}/${moduleRoute(page.record.kind)}`}>{configs[page.record.kind].label}</Link></span> : null}{ancestors.map(p => <span key={p.id}> / <Link to={`/e/${page.engagement_id}/pages/${p.id}`}>{p.title}</Link></span>)}<span> / {title}</span></nav><div className="page-meta"><span>{page.display_id} · {page.page_type}</span><Button variant="ghost" size="sm" aria-pressed={favorite} onClick={() => {
-        setFavorite(!favorite);
-        save.change({
-          favorite: !favorite
-        });
-      }}>{favorite ? '★ Pinned' : '☆ Pin page'}</Button><Button variant="ghost" size="sm" onClick={() => setConfirmDelete(true)}>Delete page</Button></div><div className="title-line"><input className="icon-input" aria-label="Page icon" placeholder="▤" value={icon} maxLength={32} onChange={e => {
+  const childPages = pages.data?.filter(p => p.parent_id === page.id) ?? [];
+  return <div className="document-width page-detail"><div className="page-title-row"><div className="title-line"><input className="icon-input" aria-label="Page icon" placeholder="▤" value={icon} maxLength={32} onChange={e => {
         setIcon(e.target.value);
         save.change({
           icon: e.target.value || null
@@ -99,7 +85,12 @@ function Detail({
         if (e.target.value.trim()) save.change({
           title: e.target.value
         });
-      }} /></div>{!title.trim() ? <p role="alert">A page title cannot be empty. The last nonempty title will be saved.</p> : null}<div className="property"><label>Parent page <select aria-label="Parent page" value={parent} onChange={e => {
+      }} /></div><div className="page-title-actions"><Button variant="ghost" size="icon" aria-label={favorite ? 'Unpin page' : 'Pin page'} title={favorite ? 'Unpin page' : 'Pin page'} aria-pressed={favorite} onClick={() => {
+        setFavorite(!favorite);
+        save.change({
+          favorite: !favorite
+        });
+      }}><Star size={16} fill={favorite ? 'currentColor' : 'none'} /></Button><details className="page-actions-menu"><summary aria-label="Page actions" title="Page actions"><MoreHorizontal size={18} /></summary><div className="page-actions-popover"><Button variant="ghost" size="sm" onClick={() => setConfirmDelete(true)}>Delete page</Button></div></details></div></div>{!title.trim() ? <p role="alert">A page title cannot be empty. The last nonempty title will be saved.</p> : null}<div className="page-meta"><span>{page.display_id} · {page.record?.kind.replaceAll('_', ' ') ?? (page.task ? 'personal task' : 'general page')}</span><label>Parent <select aria-label="Parent page" value={parent} onChange={e => {
           setParent(e.target.value);
           save.change({
             parent_id: e.target.value || null
@@ -146,7 +137,7 @@ function Detail({
           save.change({
             parent_task_id: e.target.value || null
           });
-        }}><option value="">None</option>{pages.data?.filter(p => p.task && p.id !== page.id).map(p => <option key={p.id} value={p.id}>{p.title}</option>)}</select></label>{task.related_page_id ? <Link to={`/e/${page.engagement_id}/pages/${task.related_page_id}`}>Open related page ↗</Link> : null}<ul>{pages.data?.filter(p => p.task?.parent_task_id === page.id).map(p => <li key={p.id}><Link to={`/e/${page.engagement_id}/pages/${p.id}`}>{p.title}</Link></li>)}</ul></div> : null}<WorkflowControl page={page} />{page.record ? <RecordProperties page={page} save={save} /> : null}{page.record?.kind === 'finding' || page.record?.kind === 'test_case' ? <EvidenceUploader eid={page.engagement_id} related={page} /> : null}{page.record?.kind === 'evidence' ? <EvidenceFileDetails page={page} /> : null}<SaveFeedback save={save} /><RichEditor content={page.content} onChange={content => save.change({
+        }}><option value="">None</option>{pages.data?.filter(p => p.task && p.id !== page.id).map(p => <option key={p.id} value={p.id}>{p.title}</option>)}</select></label>{task.related_page_id ? <Link to={`/e/${page.engagement_id}/pages/${task.related_page_id}`}>Open related page ↗</Link> : null}<ul>{pages.data?.filter(p => p.task?.parent_task_id === page.id).map(p => <li key={p.id}><Link to={`/e/${page.engagement_id}/pages/${p.id}`}>{p.title}</Link></li>)}</ul></div> : null}<WorkflowControl page={page} />{page.record ? <RecordProperties page={page} save={save} /> : null}{page.record?.kind === 'finding' || page.record?.kind === 'test_case' ? <EvidenceUploader eid={page.engagement_id} related={page} /> : null}{page.record?.kind === 'evidence' ? <EvidenceFileDetails page={page} /> : null}<RichEditor content={page.content} onChange={content => save.change({
       content
-    })} />{page.record?.kind === 'surface' ? <DiscoveryPanel page={page} /> : null}<RelatedRecordsPanel page={page} /><section><h2>Child pages</h2><ul>{pages.data?.filter(p => p.parent_id === page.id).map(p => <li key={p.id}><Link to={`/e/${page.engagement_id}/pages/${p.id}`}>{p.icon || '▤'} {p.title}</Link></li>)}</ul><NewPageForm eid={page.engagement_id} parentId={page.id} /></section>{error ? <ErrorMessage error={error} /> : null}{confirmDelete ? <div className="dialog-backdrop"><div role="dialog" aria-modal="true" aria-label="Delete page" className="dialog"><h2>Move this page to trash?</h2><p>Child pages move to the parent level. Linked records stay intact. Restore this page in Settings.</p><Button variant="destructive" disabled={busy} onClick={() => void remove()}>Move to trash</Button><Button variant="outline" onClick={() => setConfirmDelete(false)}>Cancel</Button></div></div> : null}</div>;
+    })} engagementId={page.engagement_id} parentPageId={page.id} /><SaveFeedback save={save} />{page.record?.kind === 'surface' ? <DiscoveryPanel page={page} /> : null}<RelatedRecordsPanel page={page} /><section className="compact-panel child-pages-panel"><div className="panel-heading"><h2>Child pages <span className="panel-count">({childPages.length})</span></h2><NewPageForm eid={page.engagement_id} parentId={page.id} label="+ New child" /></div>{childPages.length ? <ul className="child-pages-list">{childPages.map(p => <li key={p.id}><Link to={`/e/${page.engagement_id}/pages/${p.id}`}>{p.icon || '▤'} {p.title}</Link></li>)}</ul> : <p className="empty">No child pages.</p>}</section>{error ? <ErrorMessage error={error} /> : null}{confirmDelete ? <div className="dialog-backdrop"><div role="dialog" aria-modal="true" aria-label="Delete page" className="dialog"><h2>Move this page to trash?</h2><p>Child pages move to the parent level. Linked records stay intact. Restore this page in Settings.</p><Button variant="destructive" disabled={busy} onClick={() => void remove()}>Move to trash</Button><Button variant="outline" onClick={() => setConfirmDelete(false)}>Cancel</Button></div></div> : null}</div>;
 }

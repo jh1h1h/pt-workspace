@@ -1,6 +1,6 @@
 # Requirements matrix
 
-Status vocabulary: Not Started, In Progress, Implemented, Verified, Blocked. Verified requires actual passing automated tests or a dated manual check. A passing backend test verifies backend behavior, not the entire corresponding UI flow. Refer to IMPLEMENTATION_STATUS.md for final gate counts and environment restrictions. Phases 1–2 are implemented; Phases 3–4 remain planned.
+Status vocabulary: Not Started, In Progress, Implemented, Verified, Blocked, Removed. Verified requires actual passing automated tests or a dated manual check. A passing backend test verifies backend behavior, not the entire corresponding UI flow. Refer to IMPLEMENTATION_STATUS.md for final gate counts and environment restrictions.
 
 | Requirement ID | Description | Planned Phase | Implementation Location | Test IDs | Status |
 | --- | --- | --- | --- | --- | --- |
@@ -11,9 +11,9 @@ Status vocabulary: Not Started, In Progress, Implemented, Verified, Blocked. Ver
 | P1-DEPS | Pinned compatible dependencies and lockfiles; actual installs | 1 | frontend/package-lock.json; backend/requirements.lock.txt | npm ls; Python import/version checks; build | Verified |
 | P1-ENG-API | Engagement CRUD/archive/restore; isolated scoping | 1 | backend/app/api/engagements.py; repositories/workspace.py | P1-B01; P1-B08; test_archive_restore_engagement | Verified |
 | P1-ENG-UI | Engagement creation/switching; independent workspace data | 1 | features/Engagements.tsx; app/Shell.tsx | P1-F09; P1-E01; P1-E06 | Verified |
-| P1-SHELL | Collapsible sidebar, keyboard navigation, new-page action | 1 | app/Shell.tsx; app/router.tsx | P1-F10; P1-E01 | Verified |
+| P1-SHELL | Route-aware shared header and context, chevron page-tree disclosure, collapsible sidebar, keyboard navigation and modal page creation | 1 | app/Shell.tsx; app/router.tsx; components/PageTree.tsx; CreatePageDialog.tsx | P1-F10; header/page-modal component tests; desktop/mobile visual checks 2026-10-15 | Verified |
 | P1-FUTURE-NAV | Reserve VAPT navigation; Phase 2 now provides functional module routes | 1 | app/Shell.tsx; SPEC.md §2 | P2-F01; P2-E01–E10 | Verified |
-| P1-HOME | Exactly three fixed sections, no KPIs/configurable panels | 1 | features/Home.tsx | P1-F01; P1-F02 | Verified |
+| P1-HOME | Exactly three fixed sections; Notes visually last at every viewport; no KPIs/configurable panels | 1 | features/Home.tsx; home-responsive.css | P1-F01; P1-F02; 390x844 and 1440x900 visual checks 2026-10-15 | Verified |
 | P1-QUEUE | Incomplete personal tasks only; P1/P2/P3/manual ordering | 1 | features/Home.tsx; components/TaskRow.tsx | P1-F03; P1-F04; P1-B06 | Verified |
 | P1-QUEUE-EDIT | Inline creation/title/priority/completion and task-detail links | 1 | components/NewTask.tsx; TaskRow.tsx | P1-F03; P1-B06; P1-E03 | Verified |
 | P1-TASK-MODEL | UUID/display ID, document, status/priority/date/order/relations/subtasks/times | 1 | models/entities.py; schemas/contracts.py | P1-B06; test_subtask_cycles_and_links; P1-B15 | Verified |
@@ -22,18 +22,18 @@ Status vocabulary: Not Started, In Progress, Implemented, Verified, Blocked. Ver
 | P1-TASK-FILTER | Status/priority/due-date filters; title search; priority/status grouping | 1 | api/tasks.py; features/Tasks.tsx | P1-B07; P1-F04; UI grouping source review | Implemented |
 | P1-TASK-DETAIL | Description/properties/relations/subtasks in dedicated detail | 1 | features/PageDetail.tsx | P1-B06; test_subtask_cycles_and_links; API test; secondary UI coverage not comprehensive | Implemented |
 | P1-PAGE-API | Page CRUD, immutable identities, titles/icons/content/revisions/times | 1 | api/pages.py; models/entities.py | P1-B02; P1-B15 | Verified |
-| P1-PAGE-TREE | Nest/move pages; same-engagement parents; reject cycles | 1 | services/workspace.py; components/PageTree.tsx; PageDetail.tsx | P1-B03; test_page_cross_engagement_parent_and_revision_scoping; P1-E04 | Verified |
+| P1-PAGE-TREE | Create/nest/move general pages; modal child creation; same-engagement parents; reject cycles | 1 | services/workspace.py; components/CreatePageDialog.tsx; PageTree.tsx; PageDetail.tsx | P1-B02–B03; page-modal/slash component tests; P1-E04 | Verified |
 | P1-PAGE-EDITOR | Direct title/content editing; persistent formatted document | 1 | features/PageDetail.tsx; editor | P1-B04; P1-E02 | Verified |
 | P1-PAGE-BREADCRUMBS | Navigate ancestor breadcrumbs and child pages | 1 | features/PageDetail.tsx | P1-E04 | Verified |
-| P1-NOTES | Freeform notes, hierarchical explorer and simple page list | 1 | features/Pages.tsx; components/PageTree.tsx | P1-E01; source review; explorer secondary UI coverage not comprehensive | Implemented |
-| P1-JOURNAL | Unique dated daily journal creation/opening; date organization | 1 | models/entities.py; features/Pages.tsx | test_journal_favorites_search_and_nonvisit_fetch; secondary UI coverage not comprehensive | Implemented |
-| P1-FAVORITES | Persistent pins and sidebar favorites | 1 | api/pages.py; features/PageDetail.tsx; app/Shell.tsx | P1-B02; test_journal_favorites_search_and_nonvisit_fetch; secondary UI coverage not comprehensive | Implemented |
+| P1-NOTES | Exactly one engagement-scoped freeform Notes document | 1 | features/Home.tsx; editor/SavedDocument.tsx | P1-B09; P1-F05; single engagement note tests | Verified |
+| P1-JOURNAL | Dated journal workflow | 1 | Retired; legacy rows retained for recovery | Product decision; creation/navigation removed | Removed |
+| P1-FAVORITES | Persistent pins and sidebar favorites for active workflow pages | 1 | api/pages.py; features/PageDetail.tsx; app/Shell.tsx | P1-B02; secondary UI coverage not comprehensive | Implemented |
 | P1-SCRATCH | Exactly one formatted persistent scratchpad per engagement | 1 | api/engagements.py; api/pages.py; features/Home.tsx | P1-B09; P1-F05; P1-E06 | Verified |
 | P1-RECENT | Actual opens; SQLite persistence; independent history; cap eight | 1 | backend/app/models/entities.py; api/pages.py; features/Home.tsx | P1-B10; P1-B11; P1-B12; P1-F08; P1-E05 | Verified |
-| P1-SEARCH | Scoped basic page/task title search and global-search dialog | 1 | api/pages.py; api/tasks.py; components/SearchDialog.tsx | P1-B07; test_journal_favorites_search_and_nonvisit_fetch; P1-F10; secondary UI result selection not comprehensive | Implemented |
+| P1-SEARCH | Scoped workflow-record/task title search and global-search dialog | 1 | api/pages.py; api/tasks.py; components/SearchDialog.tsx | P1-B07; P3-S01–S04; P1-F10; secondary UI result selection not comprehensive | Implemented |
 | P1-EDITOR-BLOCKS | Paragraphs H1–H3 lists/checklists quotes code/language tables dividers | 1 | editor/extensions.ts; editor/commands.ts; RichEditor.tsx | P1-F06; P1-B04 | Verified |
 | P1-EDITOR-MARKS | Bold/italic/underline/inline-code; keyboard/markdown shortcuts; undo/redo | 1 | editor/extensions.ts; RichEditor.tsx | P1-F06; P1-E08 | Verified |
-| P1-SLASH | Functional slash insertion; filter/keyboard/pointer commands | 1 | editor/commands.ts; RichEditor.tsx | P1-F07; P1-E08 | Verified |
+| P1-SLASH | Functional block insertion, child-page creation and non-hierarchical existing-page links | 1 | editor/commands.ts; RichEditor.tsx | P1-F07; child/link page component tests; P1-E08 | Verified |
 | P1-JSON-SAFE | Validated JSON; safe rendering; no unknown-content discard | 1 | schemas/contracts.py; editor/RichEditor.tsx | P1-B04; P1-B05; P1-F06; source review | Verified |
 | P1-AUTOSAVE | 700ms debounce, serialization, change detection, save states | 1 | hooks/useAutosave.ts; editor/SaveFeedback | P1-F05; autosave.test.tsx; P1-E02 | Verified |
 | P1-CONFLICT | Revision/CAS protects newer data; explicit conflict review/rebase | 1 | services/workspace.py; hooks/useAutosave.ts | P1-B13; autosave conflict and overlapping-save tests | Verified |
@@ -55,18 +55,18 @@ Status vocabulary: Not Started, In Progress, Implemented, Verified, Blocked. Ver
 | P3-PROPERTIES | UI-managed custom typed properties | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
 | P3-VIEWS | Persistent saved database views | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
 | P3-TABLE-KANBAN | Saved/customizable table and Kanban views beyond Phase 2 baseline | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
-| P3-FILTER-SORT | View filtering/sorting/grouping | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
+| P3-FILTER-SORT | Modal filtering/sorting/grouping from compact Filter controls | 3 | RecordTable.tsx; BacklogKanban.tsx; Tasks.tsx | P2-F02 updated modal workflow; desktop visual check 2026-10-15 | Implemented |
 | P3-COLUMNS | Column resizing/order/visibility | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
 | P3-BULK | Bulk edits with conflicts; CSV export | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
 | P3-FTS | Global full-text SQLite search | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
 | P3-MENTIONS | Internal @ mentions and [[ wiki links | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
 | P3-BACKLINKS | Document-mention/wiki backlinks beyond Phase 2 relationship backlinks | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
-| P3-CAPTURE | Quick Capture dialog | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
+| P3-CAPTURE | Keyboard-only Quick Capture dialog without persistent floating control | 3 | GlobalQuickCapture.tsx; Tools.tsx | P3-X05; manual shortcut check 2026-10-15 | Verified |
 | P3-EMBEDS | Embedded linked database/related-record views | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
 | P3-FILES | File attachments/images and safe passive previews | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
 | P3-HTTP | Read-only HTTP evidence inspection; no replay/target requests | 3 | SPEC.md §9 | Planned; tests required in corresponding phase | Not Started |
-| P3-EDITOR | Block reorder/callouts/advanced paste extensions | 3 | SPEC.md §6,9 | Planned; tests required in corresponding phase | Not Started |
-| P3-CONVERT | Convert selected scratchpad content to permanent note | 3 | SPEC.md §3,9 | Planned; tests required in corresponding phase | Not Started |
+| P3-EDITOR | Block reorder/callouts/advanced paste extensions with compact block-actions menu | 3 | RichEditor.tsx; phase3Extensions.tsx | P3-T06–T07; desktop/mobile visual checks 2026-10-15 | Verified |
+| P3-CONVERT | Convert selected Notes content to another note | 3 | Retired | Backend/frontend absence tests | Removed |
 | P4-IMPORT | Structured scanner file imports | 4 | SPEC.md §10 | Planned; tests required in corresponding phase | Not Started |
 | P4-DEDUPE | Import deduplication with provenance and historical retention | 4 | SPEC.md §10 | Planned; tests required in corresponding phase | Not Started |
 | P4-REVISIONS | Immutable document/structured-property revision history | 4 | SPEC.md §10 | Planned; tests required in corresponding phase | Not Started |

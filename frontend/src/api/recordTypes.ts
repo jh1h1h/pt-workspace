@@ -1,6 +1,6 @@
 import type { JSONContent } from '@tiptap/react';
 export type RecordKind = 'asset' | 'surface' | 'backlog' | 'test_case' | 'finding' | 'evidence' | 'scope' | 'observation' | 'template';
-export type RegistryKind = RecordKind | 'note' | 'journal' | 'task' | 'scratchpad';
+export type RegistryKind = RecordKind | 'page' | 'note' | 'journal' | 'task' | 'scratchpad';
 export type AssetType = 'Application' | 'Domain' | 'Host' | 'API' | 'Environment' | 'Other';
 export type ScopeState = 'In Scope' | 'Out of Scope' | 'Pending Confirmation';
 export type SurfaceStatus = 'To Review' | 'In Progress' | 'Reviewed' | 'Blocked' | 'Not Applicable';

@@ -46,9 +46,10 @@ it('P3-T06 T07 callout, attachment, duplication and block controls are functiona
   mount(<RichEditor content={{ type: 'doc', content: [{ type: 'paragraph' }] }} onChange={changes} engagementId="e1" />);
   await userEvent.selectOptions(screen.getByLabelText('Insert block'), 'Callout');
   await waitFor(() => expect(JSON.stringify(changes.mock.calls.at(-1)?.[0])).toContain('callout'));
-  expect(screen.getByRole('button', { name: 'Move block up' })).toBeEnabled();
-  expect(screen.getByRole('button', { name: 'Move block down' })).toBeEnabled();
-  expect(screen.getByRole('button', { name: 'Duplicate block' })).toBeEnabled();
+  expect(screen.getByRole('combobox', { name: 'Block actions' })).toBeEnabled();
+  expect(screen.getByRole('option', { name: 'Move block up' })).toBeInTheDocument();
+  expect(screen.getByRole('option', { name: 'Move block down' })).toBeInTheDocument();
+  expect(screen.getByRole('option', { name: 'Duplicate block' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
 });
 
@@ -125,14 +126,10 @@ it('P3-X05 Quick Capture creates a candidate without navigation', async () => {
   expect(close).toHaveBeenCalled();
 });
 
-it('P3-T08 T09 scratchpad conversion defaults to retaining content', async () => {
+it('scratchpad remains the single engagement note without conversion', async () => {
   const scratch = page({ id: 'scratch', page_type: 'scratchpad', title: 'Scratchpad' });
   vi.spyOn(api, 'patch').mockResolvedValue(scratch);
-  vi.spyOn(api, 'scratchpad').mockResolvedValue(scratch);
-  const convert = vi.spyOn(phase3Api, 'convertScratchpad').mockResolvedValue(page({ title: 'Converted' }));
   mount(<SavedDocument page={scratch} label="Scratchpad content" />);
-  await userEvent.click(screen.getByRole('button', { name: 'Convert to Note' }));
-  await userEvent.type(screen.getByLabelText('Converted note title'), 'Permanent note');
-  await userEvent.click(screen.getByRole('button', { name: 'Create note' }));
-  await waitFor(() => expect(convert).toHaveBeenCalledWith(scratch, 'Permanent note', false));
+  await screen.findByRole('textbox', { name: 'Scratchpad content' });
+  expect(screen.queryByRole('button', { name: 'Convert to Note' })).not.toBeInTheDocument();
 });

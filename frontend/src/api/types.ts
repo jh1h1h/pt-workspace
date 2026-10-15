@@ -24,7 +24,7 @@ export interface Page {
   title: string;
   icon: string | null;
   parent_id: string | null;
-  page_type: 'note' | 'journal' | 'task' | 'scratchpad' | RecordKind;
+  page_type: 'page' | 'note' | 'journal' | 'task' | 'scratchpad' | RecordKind;
   journal_date: string | null;
   content: Document;
   favorite: boolean;

@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.models.entities import Engagement, Page, PersonalTask
+from app.models.records import RecordRegistry
 from app.schemas.contracts import PageOut, TaskOut
 
 
@@ -30,4 +31,6 @@ def output(db: Session, entity: Page) -> PageOut:
     result.record = projection(db, entity)
     if result.record:
         result.page_type = result.record.kind
+    elif db.get(RecordRegistry, entity.id).kind == "page":
+        result.page_type = "page"
     return result

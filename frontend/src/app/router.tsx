@@ -23,9 +23,6 @@ export const routes = [{
     path: 'tasks',
     element: <Tasks />
   }, {
-    path: 'notes',
-    element: <Pages notes />
-  }, {
     path: 'pages',
     element: <Pages />
   }, {

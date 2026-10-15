@@ -102,6 +102,7 @@ def test_P1_B01_engagement_isolation(client: TestClient) -> None:
 def test_P1_B02_page_lifecycle(client: TestClient) -> None:
     eid = engagement(client)
     p = create_page(client, eid)
+    assert p["page_type"] == "page"
     url = f"/api/v1/engagements/{eid}/pages/{p['id']}"
     response = client.patch(url, json={"revision": p["revision"], "title": "Updated", "icon": "🔎", "favorite": True})
     assert response.status_code == 200
@@ -310,7 +311,7 @@ def test_subtask_cycles_and_links(client: TestClient) -> None:
         ).status_code
         == 422
     )
-    assert client.get(f"/api/v1/engagements/{eid}/pages/{p['id']}").json()["page_type"] == "note"
+    assert client.get(f"/api/v1/engagements/{eid}/pages/{p['id']}").json()["page_type"] == "page"
 
 
 def test_archive_restore_engagement(client: TestClient) -> None:
@@ -374,7 +375,7 @@ def test_migration_preserves_existing_documents_links_and_hierarchy(tmp_path: Pa
         assert db.get(Page, ids[0]).content == DOC
 
 
-def test_journal_favorites_search_and_nonvisit_fetch(client: TestClient) -> None:
+def test_legacy_journals_are_recoverable_but_hidden(client: TestClient) -> None:
     eid = engagement(client)
     p = create_page(client, eid, "Journal 2026-10-14", page_type="journal", journal_date="2026-10-14")
     assert (
@@ -393,8 +394,9 @@ def test_journal_favorites_search_and_nonvisit_fetch(client: TestClient) -> None
     create_page(client, eid, "Journal 2026-10-15", page_type="journal", journal_date="2026-10-15")
     client.patch(f"/api/v1/engagements/{eid}/pages/{p['id']}", json={"revision": 1, "favorite": True})
     favorites = client.get(f"/api/v1/engagements/{eid}/pages?favorite=true").json()["items"]
-    assert [item["id"] for item in favorites] == [p["id"]]
-    assert client.get(f"/api/v1/engagements/{eid}/pages?q=10-14").json()["items"][0]["id"] == p["id"]
+    assert favorites == []
+    assert client.get(f"/api/v1/engagements/{eid}/pages?q=10-14").json()["items"] == []
+    assert client.get(f"/api/v1/engagements/{eid}/pages/{p['id']}").json()["id"] == p["id"]
     assert client.get(f"/api/v1/engagements/{eid}/recent").json() == []
     client.delete(f"/api/v1/engagements/{eid}/pages/{p['id']}")
     assert client.get(f"/api/v1/engagements/{eid}/pages?favorite=true").json()["items"] == []

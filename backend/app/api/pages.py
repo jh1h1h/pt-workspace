@@ -3,6 +3,7 @@ from sqlalchemy import func, select, delete
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.entities import Page, RecentPage, now
+from app.models.records import RecordRegistry
 from app.repositories.workspace import engagement, output, page
 from app.schemas.contracts import PageCreate, PageList, PageOut, PagePatch
 from app.services.workspace import check_parent, create_page, patch_page
@@ -23,9 +24,9 @@ def listing(
     db: Session = Depends(get_db),
 ) -> dict:
     engagement(db, eid)
-    query = select(Page).where(
+    query = select(Page).join(RecordRegistry, RecordRegistry.page_id == Page.id).where(
         Page.engagement_id == eid,
-        Page.page_type != "scratchpad",
+        RecordRegistry.kind.not_in(("scratchpad", "note", "journal")),
         Page.deleted_at.is_not(None) if deleted else Page.deleted_at.is_(None),
     )
     if q:
@@ -47,9 +48,12 @@ def create(eid: str, data: PageCreate, db: Session = Depends(get_db)) -> PageOut
     check_parent(db, eid, None, data.parent_id)
     values = data.model_dump(mode="json")
     content = values.pop("content")
+    registry_kind = values["page_type"]
+    if registry_kind == "page":
+        values["page_type"] = "note"
     if values["page_type"] == "journal" and not values["journal_date"]:
         raise HTTPException(422, "Journal pages require a date")
-    entity = create_page(db, eng, values)
+    entity = create_page(db, eng, values, registry_kind=registry_kind)
     entity.content = content
     from app.services.phase3 import index_page, reconcile_document_links
 
@@ -81,7 +85,13 @@ def recent(eid: str, db: Session = Depends(get_db)) -> list[PageOut]:
     items = db.scalars(
         select(Page)
         .join(RecentPage, Page.id == RecentPage.page_id)
-        .where(RecentPage.engagement_id == eid, Page.engagement_id == eid, Page.deleted_at.is_(None))
+        .join(RecordRegistry, RecordRegistry.page_id == Page.id)
+        .where(
+            RecentPage.engagement_id == eid,
+            Page.engagement_id == eid,
+            RecordRegistry.kind.not_in(("note", "journal")),
+            Page.deleted_at.is_(None),
+        )
         .order_by(RecentPage.opened_at.desc())
         .limit(MAX_RECENT)
     )

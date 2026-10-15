@@ -29,6 +29,7 @@ from app.models.records import (
 )
 from app.repositories.workspace import engagement, output, page
 from app.schemas.contracts import PageOut
+from app.schemas.records import CREATE_SCHEMAS
 from app.schemas.phase3 import (
     BulkUpdate,
     EvidenceMetadata,
@@ -37,7 +38,6 @@ from app.schemas.phase3 import (
     PropertyPatch,
     PropertyValueInput,
     QuickCapture,
-    ScratchConvert,
     SearchResult,
     ViewCreate,
     ViewPatch,
@@ -47,7 +47,14 @@ from app.schemas.phase3 import (
     ReusableTemplatePatch,
     TemplateInstantiate,
 )
-from app.services.phase3 import parse_import, rebuild_engagement_index, set_property_value, validate_property_value
+from app.services.phase3 import (
+    index_page,
+    parse_import,
+    rebuild_engagement_index,
+    reconcile_document_links,
+    set_property_value,
+    validate_property_value,
+)
 from app.services.records import create_record, normalized_route, patch_record
 from app.services.relationships import add_link
 from app.services.workspace import create_page, patch_page
@@ -469,27 +476,11 @@ def search(eid: str, q: str = Query(min_length=1, max_length=200), record_type: 
     sql += " ORDER BY rank LIMIT :limit"
     result = []
     for row in db.execute(text(sql), params).mappings():
+        if row["kind"] in {"note", "journal"}:
+            continue
         owner = db.get(Page, row["page_id"])
         result.append(SearchResult(id=owner.id, display_id=owner.display_id, title=owner.title, kind=row["kind"], excerpt=row["excerpt"] or ""))
     return result
-
-
-@router.post("/scratchpad/convert", response_model=PageOut, status_code=201)
-def scratch_convert(eid: str, data: ScratchConvert, db: Session = Depends(get_db)) -> PageOut:
-    eng = engagement(db, eid)
-    scratch = db.scalar(select(Page).where(Page.engagement_id == eid, Page.page_type == "scratchpad"))
-    if not scratch or scratch.revision != data.revision:
-        raise HTTPException(409, "Scratchpad revision changed; review before converting")
-    content = data.content or scratch.content
-    note = create_page(db, eng, {"title": data.title, "page_type": "note"})
-    note.content = content
-    from app.services.phase3 import index_page, reconcile_document_links
-    reconcile_document_links(db, note)
-    index_page(db, note)
-    if data.clear:
-        patch_page(db, scratch, {"revision": data.revision, "content": {"type": "doc", "content": [{"type": "paragraph"}]}})
-    db.commit()
-    return output(db, note)
 
 
 @router.post("/quick-capture", response_model=PageOut, status_code=201)
@@ -498,10 +489,6 @@ def quick_capture(eid: str, data: QuickCapture, db: Session = Depends(get_db)) -
     if data.kind == "task":
         entity = create_page(db, eng, {"title": data.title, "page_type": "task"}, True)
         db.add(PersonalTask(page_id=entity.id, priority=data.priority, related_page_id=data.related_id))
-    elif data.kind == "note":
-        entity = create_page(db, eng, {"title": data.title, "page_type": "note"})
-        if data.related_id:
-            add_link(db, eid, entity.id, data.related_id, "documents")
     else:
         kind = {"surface": "surface", "backlog": "backlog", "finding": "finding"}[data.kind]
         values: dict = {"title": data.title}
@@ -509,6 +496,7 @@ def quick_capture(eid: str, data: QuickCapture, db: Session = Depends(get_db)) -
             values["priority"] = data.priority
         if data.related_id:
             values["links"] = [{"target_id": data.related_id, "relationship_type": "related_to"}]
+        values = CREATE_SCHEMAS[kind].model_validate(values).model_dump(mode="json")
         entity = create_record(db, eid, kind, values)
     db.commit()
     return output(db, entity)
@@ -635,7 +623,7 @@ def content_template_initialize(eid: str, db: Session = Depends(get_db)) -> list
     samples = [
         ("Authentication testing", "test_case"), ("Authorization testing", "test_case"),
         ("Input handling", "test_case"), ("Business logic review", "test_case"),
-        ("Findings investigation", "finding"), ("General testing notes", "note"),
+        ("Findings investigation", "finding"),
     ]
     existing = set(db.scalars(select(ReusableTemplate.name).where(ReusableTemplate.engagement_id == eid)))
     created = []
@@ -692,16 +680,7 @@ def content_template_delete(eid: str, template_id: str, db: Session = Depends(ge
 def content_template_instantiate(eid: str, template_id: str, data: TemplateInstantiate, db: Session = Depends(get_db)) -> PageOut:
     template = reusable_template(db, eid, template_id)
     source = page(db, eid, template.page_id)
-    if template.record_type in {"note", "journal"}:
-        values: dict = {"title": data.title, "page_type": template.record_type}
-        if template.record_type == "journal":
-            from datetime import date
-            values["journal_date"] = date.today().isoformat()
-        entity = create_page(db, engagement(db, eid), values)
-        entity.content = source.content
-        reconcile_document_links(db, entity)
-        index_page(db, entity)
-    elif template.record_type == "task":
+    if template.record_type == "task":
         entity = create_page(db, engagement(db, eid), {"title": data.title, "page_type": "task"}, True)
         entity.content = source.content
         db.add(PersonalTask(page_id=entity.id, **template.default_properties))

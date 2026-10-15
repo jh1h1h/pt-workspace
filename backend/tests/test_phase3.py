@@ -104,17 +104,13 @@ def test_P3_T06_new_blocks_roundtrip_and_invalid_target_rejected(client: TestCli
     assert client.patch(f"/api/v1/engagements/{eid}/pages/{page['id']}", json={"revision": 2, "content": bad}).status_code == 422
 
 
-def test_P3_T08_T09_scratchpad_conversion_preserves_or_clears(client: TestClient) -> None:
+def test_single_engagement_note_cannot_be_converted(client: TestClient) -> None:
     eid = engagement(client)
     scratch = client.get(f"/api/v1/engagements/{eid}/scratchpad").json()
     scratch = client.patch(f"/api/v1/engagements/{eid}/pages/{scratch['id']}", json={"revision": scratch["revision"], "content": DOC}).json()
-    note = client.post(f"/api/v1/engagements/{eid}/scratchpad/convert", json={"revision": scratch["revision"], "title": "Converted", "clear": False})
-    assert note.status_code == 201 and note.json()["content"] == DOC
-    current = client.get(f"/api/v1/engagements/{eid}/scratchpad").json()
-    assert current["content"] == DOC
-    cleared = client.post(f"/api/v1/engagements/{eid}/scratchpad/convert", json={"revision": current["revision"], "title": "Converted again", "clear": True})
-    assert cleared.status_code == 201
-    assert client.get(f"/api/v1/engagements/{eid}/scratchpad").json()["content"] != DOC
+    converted = client.post(f"/api/v1/engagements/{eid}/scratchpad/convert", json={"revision": scratch["revision"], "title": "Converted", "clear": False})
+    assert converted.status_code == 404
+    assert client.get(f"/api/v1/engagements/{eid}/scratchpad").json()["content"] == DOC
 
 
 def upload(client: TestClient, eid: str, payload: bytes, filename: str = "proof.txt", **metadata: Any) -> Any:
@@ -155,14 +151,16 @@ def test_P3_E05_E06_E08_E10_evidence_limits_safe_preview_and_isolation(client: T
 
 def test_P3_S01_S04_search_updates_deletes_and_isolates(client: TestClient) -> None:
     one, two = engagement(client, "One"), engagement(client, "Two")
-    note = client.post(f"/api/v1/engagements/{one}/pages", json={"title": "Needle", "content": DOC}).json()
-    assert client.get(f"/api/v1/engagements/{one}/search?q=Styled").json()[0]["id"] == note["id"]
-    updated_doc = {"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "changedphrase"}]}]}
-    client.patch(f"/api/v1/engagements/{one}/pages/{note['id']}", json={"revision": 1, "content": updated_doc})
-    assert client.get(f"/api/v1/engagements/{one}/search?q=changedphrase").json()[0]["id"] == note["id"]
+    legacy = client.post(f"/api/v1/engagements/{one}/pages", json={"title": "Hidden Needle", "page_type": "note", "content": DOC}).json()
+    assert client.get(f"/api/v1/engagements/{one}/search?q=Styled").json() == []
+    finding = create(client, one, "finding", "Needle")
+    assert client.get(f"/api/v1/engagements/{one}/search?q=Needle").json()[0]["id"] == finding["id"]
+    finding = update(client, finding, title="changedphrase")
+    assert client.get(f"/api/v1/engagements/{one}/search?q=changedphrase").json()[0]["id"] == finding["id"]
     assert client.get(f"/api/v1/engagements/{two}/search?q=changedphrase").json() == []
-    client.delete(f"/api/v1/engagements/{one}/pages/{note['id']}")
+    client.delete(f"/api/v1/engagements/{one}/findings/{finding['id']}")
     assert client.get(f"/api/v1/engagements/{one}/search?q=changedphrase").json() == []
+    assert client.get(f"/api/v1/engagements/{one}/pages/{legacy['id']}").status_code == 200
 
 
 def preview(client: TestClient, eid: str, format: str, payload: bytes, filename: str = "input.txt") -> Any:
@@ -204,10 +202,11 @@ def test_P3_I05_I10_import_confirm_idempotence_notes_and_history(client: TestCli
 def test_P3_templates_and_quick_capture_are_scoped(client: TestClient) -> None:
     one, two = engagement(client, "One"), engagement(client, "Two")
     initialized = client.post(f"/api/v1/engagements/{one}/content-templates/initialize")
-    assert initialized.status_code == 201 and len(initialized.json()) == 6
+    assert initialized.status_code == 201 and len(initialized.json()) == 5
     templates = client.get(f"/api/v1/engagements/{one}/content-templates").json()
-    assert len(templates) == 6 and client.get(f"/api/v1/engagements/{two}/content-templates").json() == []
+    assert len(templates) == 5 and client.get(f"/api/v1/engagements/{two}/content-templates").json() == []
     created = client.post(f"/api/v1/engagements/{one}/content-templates/{templates[0]['id']}/instantiate", json={"title": "From template"})
     assert created.status_code == 201 and created.json()["content"]["content"][0]["type"] == "heading"
     capture = client.post(f"/api/v1/engagements/{one}/quick-capture", json={"kind": "finding", "title": "Captured candidate"})
     assert capture.status_code == 201 and capture.json()["record"]["validation_status"] == "Candidate"
+    assert client.post(f"/api/v1/engagements/{one}/quick-capture", json={"kind": "note", "title": "Extra note"}).status_code == 422

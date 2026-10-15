@@ -5,16 +5,20 @@ import { blockCommands } from './commands';
 import { Button } from '../components/ui/button';
 import { phase3Api, type SearchResult } from '../api/phase3';
 import { moveCurrentBlock } from './phase3Extensions';
+import { CreatePageDialog } from '../components/CreatePageDialog';
+import { Redo2, Undo2 } from 'lucide-react';
 export function RichEditor({
   content,
   onChange,
   label = 'Document',
-  engagementId = ''
+  engagementId = '',
+  parentPageId
 }: {
   content: JSONContent;
   onChange: (doc: JSONContent) => void;
   label?: string;
   engagementId?: string;
+  parentPageId?: string;
 }) {
   const effectiveEngagementId = engagementId || window.location.pathname.match(/^\/e\/([^/]+)/)?.[1] || '';
   const callback = useRef(onChange);
@@ -30,6 +34,9 @@ export function RichEditor({
   const [reference, setReference] = useState<{ from: number; to: number; query: string; kind: 'mention' | 'wikiLink' } | null>(null);
   const [referenceResults, setReferenceResults] = useState<SearchResult[]>([]);
   const [referenceIndex, setReferenceIndex] = useState(0);
+  const [pageAction, setPageAction] = useState<'create' | 'link' | null>(null);
+  const [pageSearch, setPageSearch] = useState('');
+  const [pageResults, setPageResults] = useState<SearchResult[]>([]);
   const referenceQuery = reference?.query;
   const slashRef = useRef(slash);
   slashRef.current = slash;
@@ -39,7 +46,12 @@ export function RichEditor({
   referenceResultsRef.current = referenceResults;
   const referenceIndexRef = useRef(referenceIndex);
   referenceIndexRef.current = referenceIndex;
-  const filtered = blockCommands.filter(command => command.label.toLowerCase().includes(slash?.query.toLowerCase() ?? ''));
+  const commands: { label: string; run: (editor: Editor) => void }[] = [
+    ...blockCommands,
+    ...(parentPageId ? [{ label: 'Create child page', run: () => setPageAction('create' as const) }] : []),
+    { label: 'Link page', run: () => setPageAction('link') }
+  ];
+  const filtered = commands.filter(command => command.label.toLowerCase().includes(slash?.query.toLowerCase() ?? ''));
   const filteredRef = useRef(filtered);
   filteredRef.current = filtered;
   const indexRef = useRef(index);
@@ -75,13 +87,18 @@ export function RichEditor({
     const timer = window.setTimeout(() => void phase3Api.search(effectiveEngagementId, referenceQuery || '*').then(setReferenceResults).catch(() => setReferenceResults([])), 150);
     return () => window.clearTimeout(timer);
   }, [referenceQuery, effectiveEngagementId]);
+  useEffect(() => {
+    if (pageAction !== 'link' || !effectiveEngagementId) return;
+    const timer = window.setTimeout(() => void phase3Api.search(effectiveEngagementId, pageSearch || '*').then(results => setPageResults(results.filter(result => result.id !== parentPageId))).catch(() => setPageResults([])), 150);
+    return () => window.clearTimeout(timer);
+  }, [pageAction, pageSearch, effectiveEngagementId, parentPageId]);
   function insertReference(target: SearchResult) {
     const current = referenceRef.current;
     if (!current || !editorRef.current) return;
     editorRef.current.chain().focus().deleteRange({ from: current.from, to: current.to }).insertContent({ type: current.kind, attrs: { recordId: target.id, label: target.title } }).insertContent(' ').run();
     setReference(null);
   }
-  function insert(editor: Editor, command: typeof blockCommands[number]) {
+  function insert(editor: Editor, command: { label: string; run: (editor: Editor) => void }) {
     const current = slashRef.current;
     if (current) editor.chain().focus().deleteRange({
       from: current.from,
@@ -89,6 +106,11 @@ export function RichEditor({
     }).run();
     setSlash(null);
     command.run(editor);
+  }
+  function insertPageLink(target: Pick<SearchResult, 'id' | 'title'>) {
+    editorRef.current?.chain().focus().insertContent({ type: 'wikiLink', attrs: { recordId: target.id, label: target.title } }).insertContent(' ').run();
+    setPageAction(null);
+    setPageSearch('');
   }
   const editor = useEditor({
     extensions: extensions(effectiveEngagementId),
@@ -181,14 +203,18 @@ export function RichEditor({
   <div className="editor-toolbar" aria-label={`${label} formatting`}>
    {marks.map(([name, action, mark]) => <Button key={name} variant="ghost" size="sm" aria-label={name} aria-pressed={editor.isActive(mark)} onMouseDown={e => e.preventDefault()} onClick={action}>{name === 'Inline code' ? '<>' : name[0]}</Button>)}
    <select aria-label="Insert block" value="" onChange={e => {
-        const command = blockCommands.find(c => c.label === e.target.value);
+        const command = commands.find(c => c.label === e.target.value);
         if (command) command.run(editor);
-      }}><option value="">Insert block…</option>{blockCommands.map(c => <option key={c.label}>{c.label}</option>)}</select>
-   <Button variant="ghost" size="sm" aria-label="Undo" onClick={() => editor.chain().focus().undo().run()}>↶</Button><Button variant="ghost" size="sm" aria-label="Redo" onClick={() => editor.chain().focus().redo().run()}>↷</Button>
-   <Button variant="ghost" size="sm" aria-label="Move block up" onClick={() => moveCurrentBlock({ editor, direction: -1 })}>↑ Block</Button><Button variant="ghost" size="sm" aria-label="Move block down" onClick={() => moveCurrentBlock({ editor, direction: 1 })}>↓ Block</Button><Button variant="ghost" size="sm" aria-label="Duplicate block" onClick={() => {
-        const { $from } = editor.state.selection;
-        if ($from.depth) editor.chain().focus().insertContentAt($from.after(1), $from.node(1).toJSON()).run();
-      }}>Duplicate</Button>
+      }}><option value="">Insert block…</option>{commands.map(c => <option key={c.label}>{c.label}</option>)}</select>
+   <Button variant="ghost" size="icon" aria-label="Undo" title="Undo" onClick={() => editor.chain().focus().undo().run()}><Undo2 size={14} /></Button><Button variant="ghost" size="icon" aria-label="Redo" title="Redo" onClick={() => editor.chain().focus().redo().run()}><Redo2 size={14} /></Button>
+   <select aria-label="Block actions" value="" onChange={event => {
+        if (event.target.value === 'up') moveCurrentBlock({ editor, direction: -1 });
+        if (event.target.value === 'down') moveCurrentBlock({ editor, direction: 1 });
+        if (event.target.value === 'duplicate') {
+          const { $from } = editor.state.selection;
+          if ($from.depth) editor.chain().focus().insertContentAt($from.after(1), $from.node(1).toJSON()).run();
+        }
+      }}><option value="">Block actions…</option><option value="up">Move block up</option><option value="down">Move block down</option><option value="duplicate">Duplicate block</option></select>
    {editor.isActive('codeBlock') ? <input aria-label="Code language" placeholder="Language" value={editor.getAttributes('codeBlock').language ?? ''} onChange={e => editor.chain().focus().updateAttributes('codeBlock', {
         language: e.target.value
       }).run()} /> : null}
@@ -197,6 +223,8 @@ export function RichEditor({
   <EditorContent editor={editor} />
   {slash ? <div role="listbox" aria-label="Slash commands" className="slash-menu">{filtered.length ? filtered.map((command, i) => <button type="button" role="option" aria-selected={i === index} key={command.label} onMouseDown={e => e.preventDefault()} onClick={() => insert(editor, command)}>{command.label}</button>) : <span>No matching block</span>}</div> : null}
   {reference ? <div role="listbox" aria-label={reference.kind === 'mention' ? 'Mention records' : 'Link pages'} className="slash-menu">{referenceResults.length ? referenceResults.map((target, i) => <button type="button" role="option" aria-selected={i === referenceIndex} key={target.id} onMouseDown={e => e.preventDefault()} onClick={() => insertReference(target)}><strong>{target.title}</strong> <small>{target.kind} · {target.display_id}</small></button>) : <span>No matching records</span>}</div> : null}
+  {pageAction === 'create' && parentPageId ? <CreatePageDialog eid={effectiveEngagementId} parentId={parentPageId} onClose={() => setPageAction(null)} onCreated={insertPageLink} /> : null}
+  {pageAction === 'link' ? <div className="dialog-backdrop"><div className="dialog" role="dialog" aria-modal="true" aria-label="Link existing page"><h2>Link existing page</h2><input autoFocus aria-label="Search pages to link" placeholder="Search pages…" value={pageSearch} onChange={event => setPageSearch(event.target.value)} /><ul className="record-picker">{pageResults.map(result => <li key={result.id}><button type="button" onClick={() => insertPageLink(result)}><span>{result.title}<small>{result.kind} · {result.display_id}</small></span></button></li>)}</ul>{!pageResults.length ? <p className="muted">No matching pages.</p> : null}<Button variant="outline" onClick={() => setPageAction(null)}>Cancel</Button></div></div> : null}
   <p className="editor-hint">Type / for blocks · @ to mention · [[ to link · Ctrl/⌘ B for bold · Ctrl/⌘ Z to undo</p>
  </div>;
 }

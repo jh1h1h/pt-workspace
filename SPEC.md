@@ -14,25 +14,25 @@ Never implement active scanning, request replay, exploitation, or automated inte
 
 The sidebar hierarchy is:
 
-- PERSONAL WORKSPACE: Home; My Tasks; Notes & Journal; All Pages.
+- PERSONAL WORKSPACE: Home; My Tasks; All Pages.
 - VAPT WORKSPACE: Scope & Assets; Attack Surfaces; Testing Backlog; Test Cases; Findings; Evidence.
 - OTHER: Activity History; Settings & Templates.
 
-Also provide engagement switching, global search, new-page creation, collapsible sidebar, nested page navigation, and optional pinned/favorite pages. Each engagement owns its pages, tasks, scratchpad, specialized records, relationships, and recent history. Changing engagements changes all displayed engagement data; no API lookup or mutation can access another engagement's records. An engagement is archived using soft deletion and can be restored. New engagements have one empty scratchpad and no fictional assessment data.
+Also provide engagement switching, global search, modal general-page creation, collapsible sidebar, nested page navigation, and optional pinned/favorite pages. The shared page header shows the current area at left and route-specific context at right; only Home uses the quiet “pick up where you left off” copy. Page-tree expansion uses standard chevron disclosures. Each engagement owns its pages, tasks, scratchpad, specialized records, relationships, and recent history. Changing engagements changes all displayed engagement data; no API lookup or mutation can access another engagement's records. An engagement is archived using soft deletion and can be restored. New engagements have one empty scratchpad and no fictional assessment data.
 
 Phase 1 exposes working personal navigation and settings. Future navigation labels appear as noninteractive text with explicit planned-phase labels. Full activity history and templates are reserved, not presented as working controls. Engagement UUID is encoded in routes and query cache keys. Ctrl/Cmd+K opens search; Escape closes it. Sidebar links and collapse button are keyboard accessible. A skip-to-content link is provided.
 
 ## 3. Home — fixed layout
 
-Home has exactly three main sections in this order: **Priority Queue**, **Scratchpad**, **Recently Opened**. Panels cannot be dragged, resized, or configured. No attack-surface totals, test totals, finding counts, coverage percentages, severity charts, KPI cards, or management statistics.
+Home has exactly three main sections: **Priority Queue**, **Notes**, and **Recently Opened**. Notes is always the bottom visual section, including the single-column mobile layout. Panels cannot be dragged, resized, or configured. No attack-surface totals, test totals, finding counts, coverage percentages, severity charts, KPI cards, or management statistics.
 
 ### Priority Queue
 
-Show incomplete PERSONAL tasks only (Open or In Progress). Sort P1, P2, P3, then manual position within a priority, then creation time as a deterministic tie-break. Never automatically include Testing Backlog records. Create a task inline; edit titles, priority, and completion; navigate to full task details. Persist edits through the API and update the query cache immediately after acceptance. Completed tasks disappear from Home but remain under My Tasks. Manual ordering is available under My Tasks and determines Home order.
+Show incomplete PERSONAL tasks only (Open or In Progress). Sort P1, P2, P3, then manual position within a priority, then creation time as a deterministic tie-break. Never automatically include Testing Backlog records. A compact Add task button beside the section title opens the creation modal; do not reserve a full input row. Edit titles, priority, and completion; navigate to full task details. Persist edits through the API and update the query cache immediately after acceptance. Completed tasks disappear from Home but remain under My Tasks. Manual ordering is available under My Tasks and determines Home order.
 
 ### Scratchpad
 
-One persistent structured Tiptap document per engagement, using the shared editor and autosave pipeline. Support headings, text, lists, checkboxes, code blocks with language metadata, tables, inline formatting, and other available Phase 1 blocks. Preserve formatting after server/browser restart. Show understandable save state. Selected-content conversion to a permanent note is reserved for Phase 3; do not show an inactive conversion control.
+One persistent structured Tiptap document per engagement, shown as **Notes**, using the shared editor and autosave pipeline. Support headings, text, lists, checkboxes, code blocks with language metadata, tables, inline formatting, and other available Phase 1 blocks. Preserve formatting after server/browser restart and show understandable save state. Notes cannot be converted into additional documents.
 
 ### Recently Opened
 
@@ -58,15 +58,15 @@ Personal Tasks are independent of Testing Backlog and Test Cases. A task consist
 
 Create, edit, complete, reopen, reorder, and soft-delete tasks. Support simple inline titles, dedicated detail pages, status/priority/due-before filtering, basic title search, and grouping by priority or status. Reordering runs in a transaction with revision checks for each task; failure rolls the whole operation back. Subtasks can be created as tasks and assigned a parent in task detail. Related-page links and subtask navigation are visible there. Deleting a parent task preserves subtask records and links; reassignment is available. A linked task stays a personal task. Completing it never updates a test or backlog item's status.
 
-## 5. Universal pages, notes, journals, and hierarchy
+## 5. Universal records and hierarchy
 
-Every page has an immutable UUID, engagement UUID, stable display ID where applicable, title, optional icon, optional parent page UUID, page type, validated Tiptap JSON, creation/update timestamps, integer revision, favorite flag, and soft-deletion timestamp. Phase 1 types: note, journal, task, scratchpad. PAGE-0001 and TASK-0001 use separate engagement counters reserved transactionally. Scratchpad uses the fixed engagement-local identifier SCRATCHPAD.
+Every persisted record page has an immutable UUID, engagement UUID, stable display ID where applicable, title, optional icon, optional parent page UUID, validated Tiptap JSON, creation/update timestamps, integer revision, favorite flag, and soft-deletion timestamp. General pages use registry kind `page`; their physical legacy page type remains `note` to preserve released SQLite constraints. Personal Tasks and specialized records participate in universal navigation. The singular Notes document uses the fixed engagement-local identifier SCRATCHPAD. Legacy registry kinds `note`/`journal` may remain in storage for recovery but are not listed, searched, created by normal UI, converted, or exposed as workflows.
 
-Create/rename, directly edit titles/content, move/nest by changing the parent, navigate breadcrumbs, add icons, pin/unpin in the sidebar, and search page titles. All Pages supports a tree and a simple typed page list; this is distinct from future customizable record database views. Notes are freeform with no mandatory template. Journal pages have a unique engagement/date combination; the UI opens the existing journal for a date or creates it. Journals are listed by descending date. Task pages also participate in universal navigation.
+Create general pages from the sidebar modal or as children from page detail. The editor `/Create child page` command opens the same modal, creates a child of the current page, and inserts its stable internal link. `/Link page` selects and inserts an existing page link without creating or reparenting it. Rename, directly edit titles/content, move/nest by changing the parent, navigate breadcrumbs, add icons, pin/unpin in the sidebar, and search record titles. All Pages provides a tree and typed list. The singular engagement Notes document is freeform with no mandatory template and cannot own child pages.
 
 Enforce same-engagement parents, reject self-parenting and ancestor cycles, and never nest beneath a scratchpad. The API validates full ancestor chains. Deleted pages are excluded by default. Soft-deleting a page promotes immediate children to the deleted page's parent and increments their revisions. It does not delete descendants, personal tasks, linked records, or relation UUIDs. Basic trash in Settings lists deleted pages and restores them. Restored pages retain their previous parent if accessible; otherwise they are restored at root. Children remain at their promoted locations. Relationships to deleted records remain recoverable; inaccessible link destinations return 404. Archiving/restoring an engagement preserves all its data.
 
-A journal date remains reserved while its page is in trash; restore that page to reuse the date. Phase 4 adds comprehensive Trash/recovery tooling, immutable revision snapshots, and activity records. Phase 1 revision numbers are concurrency tokens, not immutable revision history.
+Phase 4 adds comprehensive Trash/recovery tooling, immutable revision snapshots, and activity records. Phase 1 revision numbers are concurrency tokens, not immutable revision history.
 
 ## 6. Reusable rich-text editor
 
@@ -78,7 +78,7 @@ Phase 1 uses extensible Tiptap v3 extensions, shared by scratchpads and universa
 - Blockquotes, code blocks with editable language metadata.
 - Tables with row/column insertion, column resizing and table removal.
 - Horizontal dividers, line breaks, keyboard shortcuts, undo/redo.
-- Functional slash-command menu: paragraph, H1/H2/H3, bullet/numbered/checklist, quote, code block, table, divider. Menu filters as typed; arrows, Enter, Escape and pointer selection work.
+- Functional slash-command menu: paragraph, H1/H2/H3, bullet/numbered/checklist, quote, code block, table, divider, contextual child-page creation and existing-page linking. Menu filters as typed; arrows, Enter, Escape and pointer selection work.
 - Markdown typing shortcuts supported by the relevant Tiptap extensions (headings, lists, quotes, code, dividers and marks where practical).
 - Direct editing and automatic saving; no Edit/Save mode.
 
@@ -129,15 +129,14 @@ Typed relational table with source/target UUIDs, relationship type, engagement o
 ## 9. Phase 3 customization and editing — planned only
 
 - Manage custom property definitions through the UI with validated property types and constrained storage values. Do not use arbitrary JSON as the only structure for specialized domain records.
-- Saved database views and richer customization of the Phase 2 table/Kanban baseline; filtering, sorting, grouping, resizing, column ordering/visibility. Persist views per engagement; clarify personal vs record view ownership in implementation.
+- Saved database views and richer customization of the Phase 2 table/Kanban baseline; filtering, sorting, grouping, resizing, column ordering/visibility. Search remains visible; filter/sort/group controls open from a compact Filter button in a modal. Persist views per engagement; clarify personal vs record view ownership in implementation.
 - Bulk edits run transactionally with individual record revision checks and understandable conflicts. CSV export respects selected filters/columns and safe cell escaping.
 - Global full-text search across accessible page/record text using SQLite-compatible indexing. Phase 1 provides scoped basic title search only.
 - Internal @ mentions and [[ links with UUID targets, readable labels, scoped selection, and backlinks. Rename does not break links. Deleted targets render as unavailable references with recovery context.
-- Quick Capture dialog for rapidly creating notes/observations/tasks, with explicit destination and type.
+- Quick Capture dialog for rapidly creating workflow records and tasks, with explicit destination and type. It opens from Ctrl/Cmd+Shift+K without a persistent floating page control.
 - Embedded linked database views backed by saved queries and permissions/scoping, not copies of records.
 - File attachments/images in local controlled storage, passive previews, safe paste handling, editor callouts and block reorder controls.
 - Read-only HTTP evidence inspection: view stored request/response headers/body, decoding as an explicit passive operation. No send/replay controls, no automatic request to the assessed target.
-- Convert selected scratchpad content into a permanent note while preserving formatting and linking provenance.
 
 ## 10. Phase 4 reliability, import, export, deployment — planned only
 

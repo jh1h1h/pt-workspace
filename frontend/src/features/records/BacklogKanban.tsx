@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/button';
 import { Loading, ErrorMessage, Empty } from '../../components/Feedback';
 import { BlockReasonDialog } from './BlockReasonDialog';
 import { backlogStatuses } from './config';
+import { SlidersHorizontal } from 'lucide-react';
 export function BacklogKanban({
   eid,
   onCreate
@@ -22,6 +23,7 @@ export function BacklogKanban({
   const [error, setError] = useState<unknown>();
   const [busy, setBusy] = useState(false);
   const [blocked, setBlocked] = useState<Page | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
   const refresh = useRefresh(eid);
   const params = {
     q,
@@ -59,7 +61,7 @@ export function BacklogKanban({
       setBusy(false);
     }
   }
-  return <div className="record-database"><div className="database-toolbar"><input aria-label="Search backlog" placeholder="Search backlog…" value={q} onChange={e => setQ(e.target.value)} /><select aria-label="Kanban priority filter" value={priority} onChange={e => setPriority(e.target.value)}><option value="">All priorities</option>{['P1', 'P2', 'P3'].map(p => <option key={p}>{p}</option>)}</select><select aria-label="Kanban status filter" value={status} onChange={e => setStatus(e.target.value)}><option value="">All statuses</option>{backlogStatuses.map(s => <option key={s}>{s}</option>)}</select><Button size="sm" onClick={onCreate}>Create backlog item</Button></div><p className="section-caption">Drag a card to change status. Keyboard users can use its status selector.</p>{error ? <ErrorMessage error={error} /> : null}{query.isPending ? <Loading /> : query.error ? <ErrorMessage error={query.error} /> : <div className="kanban" aria-label="Backlog Kanban">{backlogStatuses.map(column => <section key={column} className="kanban-column" role="group" aria-label={`${column} column`} onDragOver={e => e.preventDefault()} onDrop={e => {
+  return <div className="record-database"><div className="database-toolbar"><input aria-label="Search backlog" placeholder="Search backlog…" value={q} onChange={e => setQ(e.target.value)} /><Button size="sm" variant="outline" onClick={() => setFilterOpen(true)}><SlidersHorizontal size={14} /> Filter{priority || status ? ' · active' : ''}</Button><Button size="sm" onClick={onCreate}>Create backlog item</Button></div><p className="section-caption">Drag a card to change status. Keyboard users can use its status selector.</p>{error ? <ErrorMessage error={error} /> : null}{query.isPending ? <Loading /> : query.error ? <ErrorMessage error={query.error} /> : <div className="kanban" aria-label="Backlog Kanban">{backlogStatuses.map(column => <section key={column} className="kanban-column" role="group" aria-label={`${column} column`} onDragOver={e => e.preventDefault()} onDrop={e => {
         e.preventDefault();
         const id = e.dataTransfer.getData('text/plain');
         const page = query.data.find(p => p.id === id);
@@ -71,5 +73,5 @@ export function BacklogKanban({
       const page = blocked;
       setBlocked(null);
       void move(page, 'Blocked', reason);
-    }} /> : null}</div>;
+    }} /> : null}{filterOpen ? <div className="dialog-backdrop"><div className="dialog filter-dialog" role="dialog" aria-modal="true" aria-label="Filter backlog Kanban"><h2>Filter backlog</h2><div className="filter-dialog-fields"><label>Priority<select aria-label="Kanban priority filter" value={priority} onChange={e => setPriority(e.target.value)}><option value="">All priorities</option>{['P1', 'P2', 'P3'].map(p => <option key={p}>{p}</option>)}</select></label><label>Status<select aria-label="Kanban status filter" value={status} onChange={e => setStatus(e.target.value)}><option value="">All statuses</option>{backlogStatuses.map(s => <option key={s}>{s}</option>)}</select></label></div><div className="dialog-actions"><Button variant="outline" onClick={() => { setPriority(''); setStatus(''); }}>Clear</Button><Button onClick={() => setFilterOpen(false)}>Done</Button></div></div></div> : null}</div>;
 }

@@ -63,7 +63,7 @@ export const api = {
   createPage: (eid: string, values: {
     title: string;
     parent_id?: string | null;
-    page_type?: 'note' | 'journal';
+    page_type?: 'page' | 'note' | 'journal';
     journal_date?: string;
   }) => request<Page>(`${scoped(eid)}/pages`, json('POST', values)),
   createTask: (eid: string, title: string, priority: Priority = 'P2', related_page_id?: string) => request<Page>(`${scoped(eid)}/tasks`, json('POST', {

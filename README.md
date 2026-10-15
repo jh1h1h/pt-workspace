@@ -86,7 +86,7 @@ Relative SQLite paths resolve in backend/ for the launcher. Keep the variable se
 python3 scripts/run.py seed
 ```
 
-This creates an engagement named **DEMO — Fictional assessment**, a note and two personal tasks; no fake findings, targets or scans. It is opt-in and idempotent. It preserves other engagements. For demo-only data, point VAPT_DATABASE_URL at a separate file first.
+This creates an engagement named **DEMO — Fictional assessment**, populates its Notes document, and creates two personal tasks; no fake findings, targets or scans. It is opt-in and idempotent. It preserves other engagements. For demo-only data, point VAPT_DATABASE_URL at a separate file first.
 
 ## Tests and checks
 
@@ -131,7 +131,7 @@ All endpoints use `/api/v1`. Listings return items/total/offset/limit (default 1
 | /engagements | GET paginated, POST create |
 | /engagements/{eid} | GET, PATCH name, DELETE archive |
 | /engagements/{eid}/restore | POST |
-| /engagements/{eid}/pages | GET search/favorites/trash, POST note/journal |
+| /engagements/{eid}/pages | GET visible workflow/general pages; POST general page (`page_type: page`) |
 | /engagements/{eid}/pages/{pid} | GET, PATCH document/properties, DELETE soft-delete (including task pages) |
 | /engagements/{eid}/pages/{pid}/restore | POST restore |
 | /engagements/{eid}/pages/{pid}/open | POST actual visit |
@@ -145,11 +145,11 @@ SQLAlchemy models: Engagement, Page, PersonalTask, RecentPage, RecordRegistry, R
 
 ## Editing and recovery
 
-Type `/` for the keyboard-accessible block menu. Formatting controls, markdown shortcuts, undo/redo, lists, tables and code language fields are live. Pin pages from detail; select their parent to move/nest them. Journal date creates/opens a unique daily document. My Tasks filters by status/priority/due date, groups by priority/status and offers move-up/down controls within priorities. Link a task or assign a parent task in its detail view. Ctrl/Cmd+K opens engagement-scoped title search.
+Type `/` for the keyboard-accessible block menu. `/Create child page` opens a title modal, creates a child of the current page and inserts its link; `/Link page` inserts an existing page link without changing hierarchy. Formatting controls, markdown shortcuts, undo/redo, lists, tables and code language fields are live. Each engagement has one persistent Notes document at the bottom of Home. Add a task from the compact Priority Queue title-row button. Pin pages from detail and select their parent to move/nest them. Task and record filter/sort controls open from Filter buttons instead of occupying permanent rows. Link a task or assign a parent task in its detail view. Ctrl/Cmd+K opens engagement-scoped title search.
 
 Autosave waits 700 ms, serializes requests, and uses revision checks. Navigation flushes pending document edits. On failure, content stays in the editor: Retry save, Download unsaved JSON, or Review server version. Overwriting a reviewed version requires an explicit action. Browser shutdown cannot guarantee an asynchronous save; wait for Saved or download your unsaved JSON before quitting after an error. Phase 1 has no durable crash-recovery buffer. Saved data and formatting survive restart; the editor's undo stack is session-local.
 
-Soft deletion promotes child pages, preserves linked records, and retains the deleted page. A journal date remains reserved while its journal is in trash; restore that journal to use the same date. Settings → Trash restores the page without moving children back. Archive engagement hides all its data and can be reversed from Settings or the engagement landing screen. Full immutable history/backup tooling is planned for Phase 4. Before manual copies of SQLite files, stop the application; a formal backup/restore workflow is not part of Phase 1.
+Soft deletion promotes child pages, preserves linked records, and retains the deleted page. Settings → Trash restores the page without moving children back. Legacy note/journal rows are retained for recovery but hidden from ordinary navigation and search. Archive engagement hides all its data and can be reversed from Settings or the engagement landing screen. Full immutable history/backup tooling is planned for Phase 4. Before manual copies of SQLite files, stop the application; a formal backup/restore workflow is not part of Phase 1.
 
 ## Dependencies and architecture
 
@@ -159,7 +159,7 @@ Pinned versions and compatibility decisions are documented in SPEC.md §11. fron
 
 Open Scope & Assets and initialize the nine blank engagement documents when wanted. Create assets; explicitly confirm authorization before selecting In Scope. Discovery never grants authorization. Open Attack Surfaces to create typed surfaces and append discovery observations. The detail page preserves every classification/source alongside technical notes and shows possible duplicates rather than silently combining URLs.
 
-Use Add linked record from a detail page to create a backlog item, then a test case, then a Candidate finding. Related records appear at both ends; Link records supports searchable multiple selection. Personal Tasks remain independent. Testing Backlog switches between table and Kanban; drag a card or use its keyboard-accessible status selector. Blocked requires a reason. Test execution and outcome have separate controls.
+Use the detail page’s Linked records **+ Add** menu to link an existing record, create the next workflow record, or create an independent Personal Task. Related records appear at both ends; Link existing supports searchable multiple selection. Detail pages keep hierarchy breadcrumbs in the shared header, metadata and parent selection inline, block movement in one editor menu, and child creation beside its section heading. Testing Backlog switches between table and Kanban; drag a card or use its keyboard-accessible status selector. Blocked requires a reason. Test execution and outcome have separate controls.
 
 Findings start Candidate/Unassigned. Move to Validating, enter a verification note and explicitly verify before Confirmed or Report Ready. Changing severity never validates a finding. Settings & Templates creates editable test/finding templates; select one at creation or designate the engagement default. Tables support title search, property filters, sorting, pagination, inline changes and trash/restore. Evidence currently stores documentation and metadata; attachments and passive HTTP inspection are reserved for Phase 3.
 

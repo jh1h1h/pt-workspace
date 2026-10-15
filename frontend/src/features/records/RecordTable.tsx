@@ -17,6 +17,7 @@ import { CreateRecordDialog } from './CreateRecordDialog';
 import { nextRelatedKind } from './config';
 import { BlockReasonDialog } from './BlockReasonDialog';
 import { phase3Api, type CustomProperty, type SavedView } from '../../api/phase3';
+import { SlidersHorizontal } from 'lucide-react';
 interface RowState {
   page: Page;
   title: string;
@@ -150,6 +151,7 @@ export function RecordTable({
   const [bulkField, setBulkField] = useState('');
   const [bulkValue, setBulkValue] = useState('');
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
+  const [filterOpen, setFilterOpen] = useState(false);
   useEffect(() => {
     if (!savedView) return;
     setFilters(savedView.config.filters.map(item => ({ id: item.field, value: String(item.value ?? '') })));
@@ -309,20 +311,17 @@ export function RecordTable({
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     const anchor = document.createElement('a'); anchor.href = url; anchor.download = `${kind}-view.csv`; anchor.click(); URL.revokeObjectURL(url);
   }
-  return <div className="record-database"><div className="database-toolbar"><input aria-label="Search records" placeholder={`Search ${config.label.toLowerCase()}…`} value={q} onChange={e => setQ(e.target.value)} /><label className="checkbox-label"><input aria-label="Show deleted records" type="checkbox" checked={deleted} onChange={e => void transition(() => {
-          setDeleted(e.target.checked);
-          setIndex(0);
-        })} />Trash</label><Button size="sm" onClick={onCreate}>Create {config.singular.toLowerCase()}</Button></div>
- <div className="filters">{config.filters.map(key => {
-        const spec = config.fields.find(f => f.key === key);
-        const selected = String(filters.find(f => f.id === key)?.value ?? '');
-        return <label key={key}>{spec?.label ?? key}{spec?.choices ? <select aria-label={`Filter ${spec.label}`} value={selected} onChange={e => filter(key, e.target.value)}><option value="">All</option>{spec.choices.map(choice => <option key={choice}>{choice}</option>)}</select> : <input aria-label={`Filter ${spec?.label ?? key}`} value={selected} placeholder="Exact value" onChange={e => filter(key, e.target.value)} />}</label>;
-      })}</div>
+  return <div className="record-database"><div className="database-toolbar"><input aria-label="Search records" placeholder={`Search ${config.label.toLowerCase()}…`} value={q} onChange={e => setQ(e.target.value)} /><Button size="sm" variant="outline" onClick={() => setFilterOpen(true)}><SlidersHorizontal size={14} /> Filter{filters.length ? ` (${filters.length})` : ''}</Button><Button size="sm" onClick={onCreate}>Create {config.singular.toLowerCase()}</Button></div>
  {selected.length ? <div className="bulk-bar" role="toolbar" aria-label="Bulk edit records"><strong>{selected.length} selected</strong><select aria-label="Bulk field" value={bulkField} onChange={event => setBulkField(event.target.value)}><option value="">Choose field…</option>{config.fields.map(field => <option key={field.key} value={field.key}>{field.label}</option>)}{customProperties.data?.filter(property => property.visible).map(property => <option key={property.id} value={`custom:${property.id}`}>{property.name}</option>)}</select><input aria-label="Bulk value" value={bulkValue} onChange={event => setBulkValue(event.target.value)} /><Button size="sm" onClick={() => void bulk()}>Update selected</Button><Button size="sm" variant="outline" onClick={exportCsv}>Export selected CSV</Button></div> : <Button size="sm" variant="outline" onClick={exportCsv}>Export visible CSV</Button>}
  {error ? <ErrorMessage error={error} /> : null}{query.isPending ? <Loading /> : query.error ? <ErrorMessage error={query.error} /> : <><div className="table-scroll"><table className="structured-table" aria-label={config.label}><thead>{table.getHeaderGroups().map(group => <tr key={group.id}>{group.headers.map(header => <th key={header.id} style={{ width: header.getSize() }}>{header.column.getCanSort() ? <button aria-label={`Sort ${String(header.column.columnDef.header)}`} onClick={header.column.getToggleSortingHandler()}>{flexRender(header.column.columnDef.header, header.getContext())} {header.column.getIsSorted() === 'asc' ? '↑' : header.column.getIsSorted() === 'desc' ? '↓' : '↕'}</button> : flexRender(header.column.columnDef.header, header.getContext())}<span className={`column-resizer ${header.column.getIsResizing() ? 'resizing' : ''}`} onMouseDown={header.getResizeHandler()} onTouchStart={header.getResizeHandler()} /></th>)}</tr>)}</thead><tbody>{table.getRowModel().rows.map(row => <EditableRow key={row.original.id} row={row} deleted={deleted} onRestore={restore} onDelete={setRemove} />)}</tbody></table></div>{!query.data.items.length ? <Empty>{deleted ? 'No deleted records.' : 'No records match. Create a record or adjust your filters.'}</Empty> : null}<div className="pagination"><Button size="sm" variant="outline" disabled={index === 0} onClick={() => void transition(() => setIndex(i => i - 1))}>Previous page</Button><span>Page {index + 1} · {query.data.total} records</span><Button size="sm" variant="outline" disabled={(index + 1) * size >= query.data.total} onClick={() => void transition(() => setIndex(i => i + 1))}>Next page</Button><select aria-label="Rows per page" value={size} onChange={e => void transition(() => {
           setSize(Number(e.target.value));
           setIndex(0);
         })}>{[10, 20, 50, 100].map(n => <option key={n} value={n}>{n} rows</option>)}</select></div><p className="editor-hint">Tab moves through columns. Enter opens a link or changes the sort.</p></>}
  {remove ? <div className="dialog-backdrop"><div className="dialog" role="dialog" aria-modal="true" aria-label="Delete record"><h2>Move {remove.title} to trash?</h2><p>Relationships and documents remain stored. Linked panels will show an unavailable record until restored.</p><Button variant="destructive" onClick={() => void deleteRecord()}>Move to trash</Button><Button variant="outline" onClick={() => setRemove(null)}>Cancel</Button></div></div> : null}
+ {filterOpen ? <div className="dialog-backdrop"><div className="dialog filter-dialog" role="dialog" aria-modal="true" aria-label={`Filter and sort ${config.label}`}><h2>Filter and sort</h2><div className="filter-dialog-fields">{config.filters.map(key => {
+        const spec = config.fields.find(field => field.key === key);
+        const selectedFilter = String(filters.find(item => item.id === key)?.value ?? '');
+        return <label key={key}>{spec?.label ?? key}{spec?.choices ? <select aria-label={`Filter ${spec.label}`} value={selectedFilter} onChange={event => filter(key, event.target.value)}><option value="">All</option>{spec.choices.map(choice => <option key={choice}>{choice}</option>)}</select> : <input aria-label={`Filter ${spec?.label ?? key}`} value={selectedFilter} placeholder="Exact value" onChange={event => filter(key, event.target.value)} />}</label>;
+      })}<label>Sort by<select aria-label="Sort records by" value={sorting[0]?.id ?? 'created_at'} onChange={event => void transition(() => { setSorting([{ id: event.target.value, desc: sorting[0]?.desc ?? false }]); setIndex(0); })}><option value="created_at">Created</option><option value="updated_at">Updated</option><option value="title">Title</option>{config.fields.map(field => <option key={field.key} value={field.key}>{field.label}</option>)}</select></label><label>Direction<select aria-label="Sort direction" value={sorting[0]?.desc ? 'desc' : 'asc'} onChange={event => void transition(() => setSorting([{ id: sorting[0]?.id ?? 'created_at', desc: event.target.value === 'desc' }]))}><option value="asc">Ascending</option><option value="desc">Descending</option></select></label><label className="checkbox-label"><input aria-label="Show deleted records" type="checkbox" checked={deleted} onChange={event => void transition(() => { setDeleted(event.target.checked); setIndex(0); })} />Show trash</label></div><div className="dialog-actions"><Button variant="outline" onClick={() => { setFilters([]); setSorting([{ id: 'created_at', desc: false }]); setDeleted(false); setIndex(0); }}>Clear</Button><Button onClick={() => setFilterOpen(false)}>Done</Button></div></div></div> : null}
  </div>;
 }

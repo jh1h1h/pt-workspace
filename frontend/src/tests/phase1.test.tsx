@@ -12,6 +12,7 @@ import { extensions } from '../editor/extensions';
 import { blockCommands } from '../editor/commands';
 import { page, task } from './fixtures';
 import { saves } from '../hooks/saveCoordinator';
+import { phase3Api } from '../api/phase3';
 import type { Page, Task } from '../api/types';
 let tasks: Page[];
 function renderHome(shell = false) {
@@ -107,6 +108,25 @@ describe('Phase 1 components', () => {
     expect(screen.queryByText(/coverage|findings count|tests completed|attack.surface totals|KPI/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   });
+  it('Home keeps task creation compact and restores the quiet shared header', async () => {
+    renderHome(true);
+    expect(await screen.findByText('A quiet place to pick up where you left off.')).toBeInTheDocument();
+    expect(screen.getByRole('banner')).toHaveTextContent('Home');
+    expect(screen.queryByRole('textbox', { name: 'New personal task' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Add task' }));
+    expect(screen.getByRole('dialog', { name: 'Add personal task' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'New personal task' })).toBeInTheDocument();
+  });
+  it('sidebar page creation uses a modal and creates a visible page', async () => {
+    const created = page({ id: 'new-page', title: 'Childless page', page_type: 'page' });
+    vi.spyOn(api, 'createPage').mockResolvedValue(created);
+    renderHome(true);
+    await userEvent.click(await screen.findByRole('button', { name: 'New page' }));
+    const dialog = screen.getByRole('dialog', { name: 'Create page' });
+    await userEvent.type(within(dialog).getByRole('textbox', { name: 'Page title' }), 'Childless page');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Create page' }));
+    await waitFor(() => expect(api.createPage).toHaveBeenCalledWith('e1', { title: 'Childless page', parent_id: null }));
+  });
   it('P1-F03 completed personal task disappears from Priority Queue', async () => {
     renderHome();
     await userEvent.click(await screen.findByRole('checkbox', {
@@ -184,6 +204,44 @@ describe('Phase 1 components', () => {
     expect(editor.querySelector('h2')).toBeInTheDocument();
     expect(editor.textContent).not.toContain('/heading');
   });
+  it('slash menu opens child-page creation with the current page as parent', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><RichEditor content={page().content} onChange={() => {}} engagementId="e1" parentPageId="parent-1" /></QueryClientProvider>);
+    const editor = screen.getByRole('textbox', { name: 'Document' });
+    await userEvent.click(editor);
+    editor.innerHTML = '<p>/create child</p>';
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+    fireEvent.input(editor);
+    const slashMenu = await screen.findByRole('listbox', { name: 'Slash commands' });
+    await userEvent.click(within(slashMenu).getByRole('option', { name: 'Create child page' }));
+    expect(screen.getByRole('dialog', { name: 'Create child page' })).toBeInTheDocument();
+  });
+  it('slash menu links an existing page without changing hierarchy', async () => {
+    vi.spyOn(phase3Api, 'search').mockResolvedValue([{ id: 'target-1', display_id: 'PAGE-0002', title: 'Existing page', kind: 'page', excerpt: '' }]);
+    const changes = vi.fn();
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><RichEditor content={page().content} onChange={changes} engagementId="e1" parentPageId="parent-1" /></QueryClientProvider>);
+    const editor = screen.getByRole('textbox', { name: 'Document' });
+    await userEvent.click(editor);
+    editor.innerHTML = '<p>/link page</p>';
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+    fireEvent.input(editor);
+    const slashMenu = await screen.findByRole('listbox', { name: 'Slash commands' });
+    await userEvent.click(within(slashMenu).getByRole('option', { name: 'Link page' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Link existing page' });
+    await waitFor(() => expect(phase3Api.search).toHaveBeenCalledWith('e1', '*'));
+    await userEvent.click(await within(dialog).findByRole('button', { name: /Existing page/ }));
+    await waitFor(() => expect(changes).toHaveBeenCalledWith(expect.objectContaining({ type: 'doc' })));
+    expect(api.patch).not.toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ parent_id: expect.anything() }));
+  });
   it('P1-F08 recent links navigate to the correct page', async () => {
     const {
       router
@@ -208,10 +266,26 @@ describe('Phase 1 components', () => {
     expect(api.scratchpad).toHaveBeenCalledWith('e2');
   });
   it('P1-F10 sidebar collapse and keyboard search navigation', async () => {
+    vi.mocked(api.pages).mockResolvedValue([page({
+      id: 'sidebar-note',
+      title: 'Sidebar note'
+    })]);
     renderHome(true);
     await screen.findByRole('textbox', {
       name: 'Scratchpad content'
     });
+    expect(await screen.findByRole('link', {
+      name: /Sidebar note/
+    })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {
+      name: 'Collapse pages'
+    }));
+    expect(screen.queryByRole('link', {
+      name: /Sidebar note/
+    })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {
+      name: 'Expand pages'
+    })).toHaveAttribute('aria-expanded', 'false');
     await userEvent.click(screen.getByRole('button', {
       name: 'Collapse sidebar'
     }));

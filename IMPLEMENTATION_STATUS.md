@@ -1,16 +1,20 @@
 # Implementation status
 
-Updated 2026-10-14. **Phases 1 and 2 complete. Ready for Phase 3 when requested; Phase 3 has not begun.**
+Updated 2026-10-15. **Phases 1 and 2 remain implemented; Phase 3 implementation is present but its full acceptance gate is blocked by one saved-view frontend test.**
 
 ## Implemented
 
-Phase 1 remains intact: engagement CRUD/isolation, universal notes/journals/task pages, nested hierarchy, favorites, title search, soft deletion/recovery, independent Personal Tasks, persistent recent history, exact three-section Home, reusable Tiptap editor and revision-protected serialized autosave with failure recovery.
+Phase 1 foundations remain intact: engagement CRUD/isolation, task and specialized-record pages, nested hierarchy, favorites, title search, soft deletion/recovery, independent Personal Tasks, persistent recent history, exact three-section Home, reusable Tiptap editor and revision-protected serialized autosave with failure recovery. The former note/journal workflow has been retired in favor of exactly one engagement-scoped Notes document; legacy rows remain stored for recovery but are hidden from ordinary navigation and search.
+
+General pages now have an explicit visible registry kind backed by additive migration `d1e2f3a4b5c6`. Sidebar and child-page creation use a title modal; editor slash commands create-and-link a child or link an existing page without changing hierarchy. Record, task and Kanban filter/sort controls use compact Filter buttons and modal controls. The shared route header uses route-specific context, with “A quiet place to pick up where you left off.” reserved for Home and clickable hierarchy breadcrumbs on detail routes. Detail pages consolidate metadata, parent selection, pin/delete, editor block actions, linked-record creation and child creation into compact inline controls. Quick Capture remains available from Ctrl/Cmd+Shift+K without a floating trigger. Notes remains the bottom Home section on desktop and mobile.
 
 Phase 2 adds typed assets and explicit scope authorization; nine editable scope documents and additional pages; seventeen attack-surface types and explicit duplicate indicators; retained discovery observations; independent Testing Backlog with table and persistent drag/keyboard Kanban; Test Cases with separate execution/outcome; Candidate findings with explicit verification and protected Report Ready; evidence metadata/documents; editable default/custom test/finding templates; universal scoped UUID relationships with searchable atomic multiple linking, both-end display, backlinks and linked creation. Reusable TanStack tables provide search, filtering, sorting, pagination, inline edits, delete/restore and loading/error states. All details reuse Phase 1 editor, routing and autosave.
 
 New registry, sequences and typed extension tables use additive Alembic migration b7fa36c2836a; existing Phase 1 rows remain unchanged. Composite foreign keys/triggers validate engagement/type integrity. Personal Task legacy links synchronize without completion cascades. No assessed target is contacted; runtime remains local.
 
 ## Verification evidence
+
+Latest check on 2026-10-15 after the page-workflow and layout update: backend pytest passed 58/58, Phase 1–2 Vitest passed 25/25, and full Vitest passed 38/39. TypeScript, Ruff, production build, page/slash interactions, modal filtering, and desktop/mobile visual checks passed. ESLint completed with one pre-existing `RecordTable.tsx` hook-dependency warning. `P3-C05 saved views can be created, selected, duplicated and deleted` remains blocked because the test observes no `deleteView` call; E2E was not rerun in this check.
 
 | Suite | Passed | Failed | Skipped | Report |
 | --- | --- | --- | --- | --- |

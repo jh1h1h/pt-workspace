@@ -33,6 +33,7 @@ export function RelatedRecordsPanel({
   });
   const [pick, setPick] = useState(false);
   const [create, setCreate] = useState(false);
+  const [actionMenu, setActionMenu] = useState(false);
   const [error, setError] = useState<unknown>();
   const [busy, setBusy] = useState(false);
   const refresh = useRefresh(page.engagement_id);
@@ -62,11 +63,11 @@ export function RelatedRecordsPanel({
       setBusy(false);
     }
   }
-  return <section className="related-panel" aria-label="Linked records"><div className="panel-heading"><h2>Linked records</h2><div><Button variant="outline" size="sm" onClick={() => setPick(true)} disabled={busy}>Add links</Button><Button variant="outline" size="sm" onClick={() => setCreate(true)} disabled={busy}>Create linked record</Button><Button variant="ghost" size="sm" onClick={() => void personalTask()} disabled={busy}>Create personal task</Button></div></div>
+  return <section className="related-panel compact-panel" aria-label="Linked records"><div className="panel-heading"><h2>Linked records <span className="panel-count">({query.data?.length ?? 0})</span></h2><div className="compact-action-menu"><Button variant="outline" size="sm" aria-expanded={actionMenu} onClick={() => setActionMenu(open => !open)} disabled={busy}>+ Add</Button>{actionMenu ? <div className="compact-action-popover" role="menu"><Button variant="ghost" size="sm" role="menuitem" onClick={() => { setActionMenu(false); setPick(true); }}>Link existing</Button><Button variant="ghost" size="sm" role="menuitem" onClick={() => { setActionMenu(false); setCreate(true); }}>Create linked record</Button><Button variant="ghost" size="sm" role="menuitem" onClick={() => { setActionMenu(false); void personalTask(); }}>Create personal task</Button></div> : null}</div></div>
  {error ? <ErrorMessage error={error} /> : null}{query.isPending ? <Loading /> : query.error ? <ErrorMessage error={query.error} /> : query.data.length ? <ul className="relationship-list">{query.data.map(relation => {
         const target = relation.direction === 'outgoing' ? relation.target : relation.source;
         return <li key={relation.id}><span className="relation-type">{relation.direction === 'incoming' ? '← ' : ''}{relationLabels[relation.relationship_type]}{relation.direction === 'outgoing' ? ' →' : ''}</span>{target.deleted ? <span className="deleted-reference">{target.title} · in trash</span> : <Link to={`/e/${page.engagement_id}/pages/${target.id}`}>{target.title}</Link>}<span className="record-id">{target.display_id} · {target.kind}</span><Button variant="ghost" size="sm" aria-label={`Remove link to ${target.title}`} disabled={busy} onClick={() => void remove(relation.id)}>×</Button></li>;
-      })}</ul> : <Empty>No linked records. Add a relationship or create a linked record.</Empty>}
+      })}</ul> : <Empty>No linked records.</Empty>}
  <DocumentBacklinks page={page} />{pick ? <RelatedRecordPicker page={page} onClose={() => setPick(false)} /> : null}{create ? <CreateRecordDialog eid={page.engagement_id} initialKind={nextRelatedKind(page.record?.kind)} source={page} onClose={() => setCreate(false)} /> : null}</section>;
 }
 function DocumentBacklinks({ page }: { page: Page }) {
@@ -114,7 +115,7 @@ export function RelatedRecordPicker({
   }
   return <div className="dialog-backdrop"><div className="dialog" role="dialog" aria-modal="true" aria-label="Link records" onKeyDown={e => {
       if (e.key === 'Escape' && !busy) onClose();
-    }}><h2>Link records in this engagement</h2><input ref={input} aria-label="Search related records" placeholder="Search titles…" value={search} onChange={e => setSearch(e.target.value)} /><div className="filters"><select aria-label="Related record type" value={kind} onChange={e => setKind(e.target.value)}><option value="">All types</option>{['asset', 'surface', 'backlog', 'test_case', 'finding', 'evidence', 'note', 'journal', 'task', 'scope', 'observation'].map(k => <option key={k}>{k}</option>)}</select><select aria-label="Relationship type" value={type} onChange={e => setType(e.target.value as RelationshipType)}>{Object.entries(relationLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></div>
+    }}><h2>Link records in this engagement</h2><input ref={input} aria-label="Search related records" placeholder="Search titles…" value={search} onChange={e => setSearch(e.target.value)} /><div className="filters"><select aria-label="Related record type" value={kind} onChange={e => setKind(e.target.value)}><option value="">All types</option>{['asset', 'surface', 'backlog', 'test_case', 'finding', 'evidence', 'task', 'scope', 'observation'].map(k => <option key={k}>{k}</option>)}</select><select aria-label="Relationship type" value={type} onChange={e => setType(e.target.value as RelationshipType)}>{Object.entries(relationLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></div>
  {results.isPending ? <Loading /> : results.error ? <ErrorMessage error={results.error} /> : <ul className="record-picker">{results.data.filter(p => p.id !== page.id && (!kind || (p.record?.kind ?? p.page_type) === kind)).map(p => <li key={p.id}><label><input type="checkbox" aria-label={`Select ${p.title}`} checked={selected.has(p.id)} onChange={e => setSelected(old => {
               const next = new Set(old);
               if (e.target.checked) next.add(p.id);else next.delete(p.id);
