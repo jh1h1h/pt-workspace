@@ -1,7 +1,7 @@
 from typing import Any, Literal
 from uuid import UUID
 from pydantic import AliasChoices, Field, create_model, field_validator
-from app.schemas.contracts import PagePatch, StrictModel, validate_document
+from app.schemas.contracts import PageOut, PagePatch, StrictModel, validate_document
 from app.schemas.record_properties import (
     AssetFields,
     SurfaceFields,
@@ -54,6 +54,21 @@ class BacklogCreate(RecordCreate, BacklogFields):
 
 class TestCreate(RecordCreate, TestFields):
     template_id: UUID | None = None
+
+
+class TestCasePurgePreview(StrictModel):
+    count: int
+    confirmation: str
+
+
+class TestCaseReplace(StrictModel):
+    confirmation: str = Field(pattern=r"^[0-9a-f]{64}$")
+    cases: list[TestCreate] = Field(min_length=1, max_length=1000)
+
+
+class TestCaseReplaceResult(StrictModel):
+    purged: int
+    created: list[PageOut]
 
 
 class FindingCreate(RecordCreate, FindingFields):

@@ -59,7 +59,7 @@ export const configs: Record<RecordKind, RecordConfig> = {
   test_case: {
     label: 'Test Cases',
     singular: 'Test case',
-    fields: [field('category', 'Category'), field('priority', 'Priority', 'select', ['P1', 'P2', 'P3']), field('execution_status', 'Execution status', 'select', ['Not Started', 'In Progress', 'Blocked', 'Completed', 'Not Applicable']), field('assessment_outcome', 'Assessment outcome', 'select', ['Not Assessed', 'No Issue Observed', 'Potential Finding', 'Finding Confirmed', 'Inconclusive']), field('testing_notes', 'Testing notes', 'textarea')],
+    fields: [field('category', 'Category'), field('priority', 'Priority'), field('execution_status', 'Execution status', 'select', ['Not Started', 'In Progress', 'Blocked', 'Completed', 'Not Applicable']), field('assessment_outcome', 'Assessment outcome', 'select', ['Not Assessed', 'No Issue Observed', 'Potential Finding', 'Finding Confirmed', 'Inconclusive']), field('testing_notes', 'Testing notes', 'textarea')],
     columns: ['category', 'priority', 'execution_status', 'assessment_outcome'],
     filters: ['category', 'priority', 'execution_status', 'assessment_outcome'],
     statusKey: 'execution_status'

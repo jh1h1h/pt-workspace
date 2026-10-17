@@ -1,6 +1,6 @@
 import json
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import Integer, cast, func, select
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.entities import Page
@@ -9,8 +9,10 @@ from app.repositories.workspace import engagement, output, page
 from app.repositories.records import record_row
 from app.schemas.contracts import PageList, PageOut
 from app.schemas.record_properties import FIELD_SCHEMAS
-from app.schemas.records import CREATE_SCHEMAS, PATCH_SCHEMAS, VerifyFinding
-from app.services.records import create_record, patch_record, verify_finding
+from app.schemas.records import (
+    CREATE_SCHEMAS, PATCH_SCHEMAS, TestCasePurgePreview, TestCaseReplace, TestCaseReplaceResult, VerifyFinding,
+)
+from app.services.records import create_record, patch_record, replace_test_cases, test_case_purge_preview, verify_finding
 from app.services.document_templates import SCOPE_SECTIONS
 from app.api.pages import remove as delete_page, restore as restore_page
 
@@ -58,6 +60,8 @@ def build_routes(kind: str) -> None:
         surface_id: str | None = None,
         sort: str = "created_at",
         direction: str = "asc",
+        secondary_sort: str | None = None,
+        secondary_direction: str = "asc",
         deleted: bool = False,
         offset: int = Query(0, ge=0),
         limit: int = Query(20, ge=1, le=200),
@@ -121,12 +125,26 @@ def build_routes(kind: str) -> None:
                 if hasattr(model, field) and field not in {"tags", "roles"}
             },
         }
-        if sort not in sortable or direction not in {"asc", "desc"}:
+        if (
+            sort not in sortable
+            or direction not in {"asc", "desc"}
+            or (secondary_sort is not None and secondary_sort not in sortable)
+            or secondary_direction not in {"asc", "desc"}
+        ):
             raise HTTPException(422, "Unsupported sort")
         total = db.scalar(select(func.count()).select_from(query.subquery()))
         column = sortable[sort]
+        if kind == "test_case" and sort == "priority":
+            column = cast(func.substr(model.priority, 2), Integer)
+        order = [column.desc() if direction == "desc" else column.asc()]
+        if secondary_sort is not None and secondary_sort != sort:
+            secondary_column = sortable[secondary_sort]
+            if kind == "test_case" and secondary_sort == "priority":
+                secondary_column = cast(func.substr(model.priority, 2), Integer)
+            order.append(secondary_column.desc() if secondary_direction == "desc" else secondary_column.asc())
+        order.append(Page.id)
         items = db.scalars(
-            query.order_by(column.desc() if direction == "desc" else column.asc(), Page.id).offset(offset).limit(limit)
+            query.order_by(*order).offset(offset).limit(limit)
         )
         return dict(items=[output(db, entity) for entity in items], total=total, offset=offset, limit=limit)
 
@@ -172,6 +190,21 @@ def build_routes(kind: str) -> None:
 
 
 # Register specific actions first so they cannot be mistaken for record UUID routes.
+@router.get("/test-cases/purge-preview", response_model=TestCasePurgePreview)
+def purge_preview(eid: str, db: Session = Depends(get_db)) -> dict:
+    return test_case_purge_preview(db, eid)
+
+
+@router.post("/test-cases/replace", response_model=TestCaseReplaceResult)
+def replace_cases(eid: str, data: TestCaseReplace, db: Session = Depends(get_db)) -> dict:
+    purged, entities = replace_test_cases(
+        db, eid, data.confirmation, [case.model_dump(mode="json") for case in data.cases]
+    )
+    result = {"purged": purged, "created": [output(db, entity) for entity in entities]}
+    db.commit()
+    return result
+
+
 @router.post("/findings/{pid}/verify", response_model=PageOut)
 def verify(eid: str, pid: str, data: VerifyFinding, db: Session = Depends(get_db)) -> PageOut:
     entity = verify_finding(db, page(db, eid, pid), data.revision, data.verification_note)

@@ -90,21 +90,37 @@ This creates an engagement named **DEMO — Fictional assessment**, populates it
 
 ## Import the application SSO Test Case checklist
 
-The local checklist in `tmp/edupass-login-test-cases.json` describes 40 single-purpose application-owned staff and HQ login/OTP tests, ordered by impact-based priority (28 P1, 12 P2). Each case's Category names the type of vulnerability it tests, such as open redirect, session fixation, or OTP replay; a test label is not a confirmed finding. SSO-02A remains P2 while SSO-02B is P1 for its conditional authorization-code delivery impact, not because a controllable callback input is known. Priority and category are persisted on newly imported Test Cases and shown in the Test Cases table and detail view; the table defaults to P1-first and supports priority sorting and filtering. Keep future Test Case JSON files in ignored `tmp/` too; these checklists are not committed. Microsoft is out of scope. Inspect and adapt the prerequisites to your written authorization before testing. Do not paste raw login captures, authorization codes, tokens, cookies, or OTPs into Test Cases. Callback and negative OTP tests require an approved fixture and should remain Blocked without one.
+The current local checklist in `tmp/auth-flow-2h-test-cases.json` describes 23 application-owned staff, Admin and HQ login/OTP cases with explicit Burp/browser instructions: nine P1 cases budgeted at 110 minutes plus a 10-minute buffer, ten P2 follow-ups and four P3 cases. Open redirects receive 20 P1 minutes. Timings are hard caps, not a promise that every conditional branch will fit; stop and record untested/blocked branches. The older `tmp/edupass-login-test-cases.json` is retained separately, not merged into this checklist. Each case's Category names the vulnerability type, not a confirmed finding. Priority and category persist in the table/detail view. Test Case priorities accept P1 through P99999 and sort numerically; Personal Tasks and Testing Backlog remain P1/P2/P3. Keep future JSON checklists in ignored `tmp/`; they are not committed. Microsoft is out of scope. Adapt prerequisites to written authorization, never paste raw credentials/codes/OTPs into Test Cases, and leave fixture-dependent negative checks Blocked without the approved fixture.
 
 With the local API running, preview the destination and exact-title skips from the repository root. This command makes no changes:
 
 ```bash
-python3 scripts/import_test_cases.py tmp/edupass-login-test-cases.json 'pgw2026'
+python3 scripts/import_test_cases.py tmp/auth-flow-2h-test-cases.json 'pgw2026'
 ```
 
 Once the destination and case titles look right, explicitly create the missing cases:
 
 ```bash
-python3 scripts/import_test_cases.py tmp/edupass-login-test-cases.json 'pgw2026' --apply
+python3 scripts/import_test_cases.py tmp/auth-flow-2h-test-cases.json 'pgw2026' --apply
 ```
 
 Use your engagement's exact name in quotes (including capitalization), or its UUID from the engagement URL. If more than one active engagement has that name, the importer refuses to proceed and prints their UUIDs so you can choose explicitly. The importer uses only the loopback API, leaves existing Test Cases with identical titles untouched, and creates new cases as Not Started / Not Assessed. It does not create findings, contact assessed targets, or implement the separate scanner-import feature. A failed partial run can be resumed: preview again before retrying. Existing same-title records are skipped even if their content differs; review those records manually.
+
+To replace the selected engagement's entire Test Cases collection with a revised checklist, first preview the permanent deletion (including trashed cases):
+
+```bash
+python3 scripts/import_test_cases.py tmp/auth-flow-2h-test-cases.json 'pgw2026' --purge
+```
+
+Only after reviewing that destination and count, explicitly apply the replacement:
+
+```bash
+python3 scripts/import_test_cases.py tmp/auth-flow-2h-test-cases.json 'pgw2026' --purge --apply
+```
+
+`--purge` alone is read-only. `--purge --apply` permanently removes every Test Case in the selected engagement, including execution notes, documents and trash, then imports the file in one transaction. Same-title cases are recreated with new UUIDs; their previous assessment state is not retained. Save any unsaved edits and close affected Test Case tabs first. The API preserves other engagements, notes, Personal Tasks, findings, evidence/attachments, templates, property definitions and monotonic display-ID counters. Only the deleted cases' search/recent entries, property values and relationship/backlink rows are removed; other documents keep their text/UUID references, whose deleted targets become unavailable. Child pages, Personal Task references, incoming custom relation values/defaults and append-only import provenance block purge rather than being silently changed. Detach editable references explicitly; provenance-linked cases cannot be purged by this tool. A stale preview or failed replacement rolls back all deletion/creation. At most 1000 replacement cases are accepted. There is no automatic backup or undo: retain any needed data before applying. This is a narrowly authorized Test Case importer operation, not a whole-workspace reset or the planned Phase 4 recovery/backup system.
+
+If the importer says the running API does not support safe purge, restart the backend with the updated code and preview again. The importer never falls back to directly opening or deleting a SQLite database.
 
 If import reports that the running API does not support Test Case priority, stop the existing dev server and restart it with `python3 scripts/run.py dev` from the repository root. Startup applies the additive database migration and loads the current backend code. Then preview the import again before using `--apply`; do not run a seed or remove the existing database.
 

@@ -18,13 +18,15 @@ Base URL: http://127.0.0.1:8000/api/v1. Interactive typed OpenAPI: /docs; machin
 
 Each resource provides GET/POST collection, GET/PATCH/DELETE /{pid}, POST /{pid}/restore. DELETE is soft deletion. Output is a shared Page including a discriminated typed `record` property; create/patch domain properties are top-level fields. PATCH requires revision and accepts title/content plus type-specific editable properties. UUIDs are immutable. Shared page detail/open/favorite/hierarchy/recovery endpoints remain usable. Observation provenance is creation-only; patch edits title/document.
 
-Lists return items,total,offset,limit; specialized default limit is 20, maximum 200. Parameters: q (title search), offset, limit, sort, direction asc/desc, deleted, status/priority/severity/classification/surface_id where applicable; filters is a JSON object of at most ten allowlisted field/string pairs. Unsupported properties/sorts/filters return 422. No arbitrary SQL is accepted. All lookup and mutation paths enforce engagement scope.
+Lists return items,total,offset,limit; specialized default limit is 20, maximum 200. Parameters: q (title search), offset, limit, sort, direction asc/desc, optional secondary_sort and secondary_direction asc/desc, deleted, status/priority/severity/classification/surface_id where applicable; filters is a JSON object of at most ten allowlisted field/string pairs. Unsupported properties/sorts/filters return 422. No arbitrary SQL is accepted. All lookup and mutation paths enforce engagement scope.
 
-Test Cases persist `priority` as P1, P2 or P3 (default P2). The Test Cases list supports `priority=P1`, `filters={"priority":"P1"}`, and `sort=priority&direction=asc` for highest-first ordering. This execution priority is independent of Personal Tasks and Testing Backlog.
+Test Cases persist `priority` as a numeric rank from P1 through P99999 (default P2). The Test Cases list supports `priority=P12`, `filters={"priority":"P12"}`, and `sort=priority&direction=asc&secondary_sort=title&secondary_direction=asc` for numeric highest-first ordering with a title tie-breaker. This execution priority is independent of Personal Tasks and Testing Backlog, which retain P1/P2/P3.
 
 | Additional route | Method / body |
 | --- | --- |
 | /scope-pages/initialize | POST; idempotently creates missing nine scope documents |
+| /test-cases/purge-preview | GET; read-only count including trash and an opaque confirmation token; 409 for preserved dependencies |
+| /test-cases/replace | POST; `confirmation` from preview and nonempty `cases` array of TestCreate (maximum 1000); atomic permanent replacement; returns `purged` count and `created` pages |
 | /findings/{pid}/verify | POST; revision, verification_note; requires Validating |
 | /records/{pid}/relationships | GET; links displayed in both directions |
 | /records/{pid}/backlinks | GET; incoming links |
@@ -33,6 +35,8 @@ Test Cases persist `priority` as P1, P2 or P3 (default P2). The Test Cases list 
 | /relationships/{rid} | DELETE; removes link |
 
 Create records with related_ids to link multiple same-engagement targets in the creation transaction; template_id optionally selects a matching same-engagement test/finding template. Exact field constraints and enums are published in OpenAPI and SPEC.md §14. Errors use error.code/message/details as applicable: 404 inaccessible/wrong-engagement, 409 stale revision/duplicate constraint, 422 invalid typed properties or lifecycle. Finding confirmation requires explicit verification proof; changing severity never changes status. Record/task completion never cascades.
+
+Test Case replacement is explicitly destructive and engagement-scoped, used only by the importer's opt-in `--purge --apply` path. The confirmation token binds the engagement and current active/trashed case identities/revisions; changed cases require a fresh preview. A SQLite write lock serializes validation, purge and creation. Any invalid replacement or database constraint rolls back the entire operation, including display-ID reservations. Existing display-ID sequences are never reset. Deletion removes Test Case pages, typed rows, registry entries and their search/recent/property/workflow/relationship/document-link metadata, not linked findings/evidence or attachment files. Other documents retain their content and may show unavailable references. Non-test child pages, Personal Task references, custom relation references/defaults and append-only import provenance return 409 rather than being deleted or rewritten. The API does not provide whole-workspace deletion, general trash recovery or automatic backups; Phase 4 requirements remain outstanding.
 
 Persistence models are typed SQLAlchemy extensions to Page, a UUID registry, transactional identifier sequences and composite-FK relationships. Schema migration b7fa36c2836a is additive and backfills existing Phase 1 identities/legacy task links. No target request, replay or active execution endpoints exist.
 

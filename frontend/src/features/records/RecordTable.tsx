@@ -137,10 +137,10 @@ export function RecordTable({
   const config = configs[kind];
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
-  const [sorting, setSorting] = useState<SortingState>([{
-    id: kind === 'test_case' ? 'priority' : 'created_at',
-    desc: false
-  }]);
+  const [sorting, setSorting] = useState<SortingState>(kind === 'test_case' ? [
+    { id: 'priority', desc: false },
+    { id: 'title', desc: false }
+  ] : [{ id: 'created_at', desc: false }]);
   const [filters, setFilters] = useState<ColumnFiltersState>([]);
   const [index, setIndex] = useState(0);
   const [size, setSize] = useState(20);
@@ -166,6 +166,10 @@ export function RecordTable({
     limit: String(size),
     sort: sorting[0]?.id ?? 'created_at',
     direction: sorting[0]?.desc ? 'desc' : 'asc',
+    ...(kind === 'test_case' && sorting[1] ? {
+      secondary_sort: sorting[1].id,
+      secondary_direction: sorting[1].desc ? 'desc' : 'asc'
+    } : {}),
     deleted: String(deleted),
     filters: JSON.stringify(filterValues)
   };
@@ -190,6 +194,30 @@ export function RecordTable({
     }, 300);
     return () => clearTimeout(timer);
   }, [q,search]);
+  function changePrimarySort(id: string) {
+    void transition(() => {
+      setSorting(current => {
+        const primary = { id, desc: current[0]?.desc ?? false };
+        return [primary, ...(kind === 'test_case' && current[1]?.id !== id ? [current[1]] : [])];
+      });
+      setIndex(0);
+    });
+  }
+  function changePrimaryDirection(desc: boolean) {
+    void transition(() => setSorting(current => [{ id: current[0]?.id ?? 'created_at', desc }, ...(kind === 'test_case' && current[1] ? [current[1]] : [])]));
+  }
+  function changeSecondarySort(id: string) {
+    void transition(() => {
+      setSorting(current => {
+        const primary = current[0] ?? { id: 'priority', desc: false };
+        return id && id !== primary.id ? [primary, { id, desc: current[1]?.desc ?? false }] : [primary];
+      });
+      setIndex(0);
+    });
+  }
+  function changeSecondaryDirection(desc: boolean) {
+    void transition(() => setSorting(current => current[1] ? [current[0] ?? { id: 'priority', desc: false }, { ...current[1], desc }] : current));
+  }
   const columns = useMemo<ColumnDef<Page>[]>(() => [{
     id: 'select',
     header: ({ table }) => <input aria-label="Select all visible records" type="checkbox" checked={table.getIsAllPageRowsSelected()} onChange={table.getToggleAllPageRowsSelectedHandler()} />,
@@ -248,6 +276,8 @@ export function RecordTable({
     onColumnSizingChange: setColumnSizing,
     enableColumnResizing: true,
     enableRowSelection: true,
+    enableMultiSort: kind === 'test_case',
+    maxMultiSortColCount: 2,
     getRowId: row => row.id,
     onSortingChange: updater => void transition(() => {
       setSorting(old => typeof updater === 'function' ? updater(old) : updater);
@@ -328,6 +358,6 @@ export function RecordTable({
         const spec = config.fields.find(field => field.key === key);
         const selectedFilter = String(filters.find(item => item.id === key)?.value ?? '');
         return <label key={key}>{spec?.label ?? key}{spec?.choices ? <select aria-label={`Filter ${spec.label}`} value={selectedFilter} onChange={event => filter(key, event.target.value)}><option value="">All</option>{spec.choices.map(choice => <option key={choice}>{choice}</option>)}</select> : <input aria-label={`Filter ${spec?.label ?? key}`} value={selectedFilter} placeholder="Exact value" onChange={event => filter(key, event.target.value)} />}</label>;
-      })}<label>Sort by<select aria-label="Sort records by" value={sorting[0]?.id ?? 'created_at'} onChange={event => void transition(() => { setSorting([{ id: event.target.value, desc: sorting[0]?.desc ?? false }]); setIndex(0); })}><option value="created_at">Created</option><option value="updated_at">Updated</option><option value="title">Title</option>{config.fields.map(field => <option key={field.key} value={field.key}>{field.label}</option>)}</select></label><label>Direction<select aria-label="Sort direction" value={sorting[0]?.desc ? 'desc' : 'asc'} onChange={event => void transition(() => setSorting([{ id: sorting[0]?.id ?? 'created_at', desc: event.target.value === 'desc' }]))}><option value="asc">Ascending</option><option value="desc">Descending</option></select></label><label className="checkbox-label"><input aria-label="Show deleted records" type="checkbox" checked={deleted} onChange={event => void transition(() => { setDeleted(event.target.checked); setIndex(0); })} />Show trash</label></div><div className="dialog-actions"><Button variant="outline" onClick={() => { setFilters([]); setSorting([{ id: 'created_at', desc: false }]); setDeleted(false); setIndex(0); }}>Clear</Button><Button onClick={() => setFilterOpen(false)}>Done</Button></div></div></div> : null}
+      })}<label>Sort by<select aria-label="Sort records by" value={sorting[0]?.id ?? 'created_at'} onChange={event => changePrimarySort(event.target.value)}><option value="created_at">Created</option><option value="updated_at">Updated</option><option value="title">Title</option>{config.fields.map(field => <option key={field.key} value={field.key}>{field.label}</option>)}</select></label><label>Direction<select aria-label="Sort direction" value={sorting[0]?.desc ? 'desc' : 'asc'} onChange={event => changePrimaryDirection(event.target.value === 'desc')}><option value="asc">Ascending</option><option value="desc">Descending</option></select></label>{kind === 'test_case' ? <><label>Then by<select aria-label="Then sort records by" value={sorting[1]?.id ?? ''} onChange={event => changeSecondarySort(event.target.value)}><option value="">None</option><option value="created_at">Created</option><option value="updated_at">Updated</option><option value="title">Title</option>{config.fields.map(field => <option key={field.key} value={field.key}>{field.label}</option>)}</select></label><label>Then direction<select aria-label="Then sort direction" disabled={!sorting[1]} value={sorting[1]?.desc ? 'desc' : 'asc'} onChange={event => changeSecondaryDirection(event.target.value === 'desc')}><option value="asc">Ascending</option><option value="desc">Descending</option></select></label></> : null}<label className="checkbox-label"><input aria-label="Show deleted records" type="checkbox" checked={deleted} onChange={event => void transition(() => { setDeleted(event.target.checked); setIndex(0); })} />Show trash</label></div><div className="dialog-actions"><Button variant="outline" onClick={() => { setFilters([]); setSorting(kind === 'test_case' ? [{ id: 'priority', desc: false }, { id: 'title', desc: false }] : [{ id: 'created_at', desc: false }]); setDeleted(false); setIndex(0); }}>Clear</Button><Button onClick={() => setFilterOpen(false)}>Done</Button></div></div></div> : null}
  </div>;
 }

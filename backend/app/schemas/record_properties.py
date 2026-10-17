@@ -38,6 +38,7 @@ RelationshipType = Literal[
 ShortText = Annotated[str, Field(max_length=300)]
 Tag = Annotated[str, Field(min_length=1, max_length=100)]
 Tags = Annotated[list[Tag], Field(max_length=100)]
+TestPriority = Annotated[str, Field(pattern=r"^P[1-9][0-9]{0,4}$")]
 
 
 class Fields(BaseModel):
@@ -79,7 +80,7 @@ class BacklogFields(Fields):
 
 class TestFields(Fields):
     category: str = Field(default="", max_length=200)
-    priority: Literal["P1", "P2", "P3"] = "P2"
+    priority: TestPriority = "P2"
     execution_status: ExecutionStatus = "Not Started"
     assessment_outcome: AssessmentOutcome = "Not Assessed"
     testing_notes: str = Field(default="", max_length=20000)

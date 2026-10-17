@@ -54,7 +54,7 @@ export interface BacklogProperties {
 export interface TestProperties {
   kind: 'test_case';
   category: string;
-  priority: 'P1' | 'P2' | 'P3';
+  priority: `P${number}`;
   execution_status: ExecutionStatus;
   assessment_outcome: AssessmentOutcome;
   testing_notes: string;
@@ -125,7 +125,7 @@ export interface RecordChanges {
   status?: SurfaceStatus | BacklogStatus | 'Open' | 'Done';
   objective?: string;
   category?: string;
-  priority?: 'P1' | 'P2' | 'P3';
+  priority?: `P${number}`;
   blocker_reason?: string | null;
   due_date?: string | null;
   execution_status?: ExecutionStatus;

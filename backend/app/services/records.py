@@ -1,13 +1,16 @@
 from datetime import datetime
+from hashlib import sha256
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 from fastapi import HTTPException
-from sqlalchemy import update
+from sqlalchemy import select, update
 from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.orm import Session
-from app.models.entities import Page, now
-from app.models.records import RECORD_MODELS, RecordSequence
-from app.repositories.records import record_row
+from app.models.entities import Engagement, Page, PersonalTask, now
+from app.models.records import (
+    CustomPropertyDefinition, CustomPropertyValue, ImportEntry, RECORD_MODELS, RecordSequence,
+)
+from app.repositories.records import delete_test_case_pages, record_row, test_case_pages
 from app.repositories.workspace import engagement, page
 from app.schemas.record_properties import FIELD_SCHEMAS
 from app.services.registry import register_page
@@ -35,6 +38,56 @@ TRANSITIONS = {
     "Report Ready": {"Confirmed", "Validating", "Dismissed"},
 }
 PAGE_FIELDS = {"title", "content", "icon", "parent_id", "favorite"}
+
+
+def test_case_purge_preview(db: Session, eid: str) -> dict[str, Any]:
+    engagement(db, eid)
+    entities = test_case_pages(db, eid)
+    ids = {entity.id for entity in entities}
+    if ids:
+        dependencies = (
+            (select(Page.id).where(Page.parent_id.in_(ids), Page.id.not_in(ids)), "child pages"),
+            (select(PersonalTask.page_id).where(PersonalTask.related_page_id.in_(ids)), "Personal Task references"),
+            (select(ImportEntry.id).where(ImportEntry.record_id.in_(ids)), "append-only import provenance"),
+        )
+        for query, label in dependencies:
+            if db.scalar(query.limit(1)) is not None:
+                if label == "append-only import provenance":
+                    raise HTTPException(409, "Purge blocked by append-only import provenance; these cases cannot be purged by this tool")
+                raise HTTPException(409, f"Purge blocked by {label}; preserve or detach these references first")
+        definitions = list(db.scalars(select(CustomPropertyDefinition).where(
+            CustomPropertyDefinition.engagement_id == eid, CustomPropertyDefinition.data_type == "relation"
+        )))
+        for definition in definitions:
+            defaults = definition.default_value if isinstance(definition.default_value, list) else [definition.default_value]
+            if any(isinstance(target, str) and target in ids for target in defaults):
+                raise HTTPException(409, "Purge blocked by a relation property's default value")
+        if definitions:
+            values = db.scalars(select(CustomPropertyValue).where(
+                CustomPropertyValue.engagement_id == eid,
+                CustomPropertyValue.property_id.in_([definition.id for definition in definitions]),
+                CustomPropertyValue.record_id.not_in(ids),
+            ))
+            if any(isinstance(value.value, list) and ids.intersection(value.value) for value in values):
+                raise HTTPException(409, "Purge blocked by another record's custom relation value")
+    state = "\n".join([eid, *[
+        f"{entity.id}:{entity.revision}:{entity.deleted_at}" for entity in entities
+    ]])
+    return {"count": len(entities), "confirmation": sha256(state.encode("utf-8")).hexdigest()}
+
+
+def replace_test_cases(
+    db: Session, eid: str, confirmation: str, cases: list[dict[str, Any]]
+) -> tuple[int, list[Page]]:
+    db.execute(update(Engagement).where(Engagement.id == eid).values(next_page=Engagement.next_page))
+    preview = test_case_purge_preview(db, eid)
+    if confirmation != preview["confirmation"]:
+        raise HTTPException(409, "Test Cases changed since preview; preview again before purging")
+    ids = [entity.id for entity in test_case_pages(db, eid)]
+    delete_test_case_pages(db, eid, ids)
+    created = [create_record(db, eid, "test_case", values) for values in cases]
+    db.flush()
+    return len(ids), created
 
 
 def normalized_route(value: str) -> str:

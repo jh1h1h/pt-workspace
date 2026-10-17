@@ -109,7 +109,10 @@ class BacklogItem(Base):
 class TestCase(Base):
     __tablename__ = "test_cases"
     __table_args__ = (
-        CheckConstraint("priority IN ('P1', 'P2', 'P3')"),
+        CheckConstraint(
+            "length(priority) BETWEEN 2 AND 6 AND substr(priority, 1, 1) = 'P' "
+            "AND substr(priority, 2, 1) != '0' AND substr(priority, 2) NOT GLOB '*[^0-9]*'"
+        ),
         CheckConstraint("execution_status IN ('Not Started', 'In Progress', 'Blocked', 'Completed', 'Not Applicable')"),
         CheckConstraint(
             "assessment_outcome IN ('Not Assessed', 'No Issue Observed', 'Potential Finding', 'Finding Confirmed', 'Inconclusive')"
@@ -117,7 +120,7 @@ class TestCase(Base):
     )
     page_id: Mapped[str] = mapped_column(ForeignKey("record_registry.page_id"), primary_key=True)
     category: Mapped[str] = mapped_column(String(200), default="")
-    priority: Mapped[str] = mapped_column(String(2), default="P2")
+    priority: Mapped[str] = mapped_column(String(6), default="P2")
     execution_status: Mapped[str] = mapped_column(String(30), default="Not Started")
     assessment_outcome: Mapped[str] = mapped_column(String(30), default="Not Assessed")
     testing_notes: Mapped[str] = mapped_column(Text, default="")

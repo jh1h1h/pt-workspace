@@ -1,8 +1,11 @@
 from fastapi import HTTPException
-from sqlalchemy import or_, select
+from sqlalchemy import delete, or_, select, text
 from sqlalchemy.orm import Session
-from app.models.entities import Page
-from app.models.records import AttackSurface, RECORD_MODELS, RecordRegistry, RecordRelationship
+from app.models.entities import Page, RecentPage
+from app.models.records import (
+    AttackSurface, CustomPropertyValue, DocumentLink, RECORD_MODELS, RecordRegistry,
+    RecordRelationship, TestCase, WorkflowAssignment,
+)
 from app.schemas.record_properties import PROPERTY_SCHEMAS, RecordProperties
 
 
@@ -14,6 +17,32 @@ def record_row(db: Session, entity: Page, kind: str | None = None) -> object:
     if row is None:
         raise HTTPException(404, "Record properties not found")
     return row
+
+
+def test_case_pages(db: Session, eid: str) -> list[Page]:
+    return list(db.scalars(
+        select(Page).join(RecordRegistry, RecordRegistry.page_id == Page.id)
+        .join(TestCase, TestCase.page_id == Page.id)
+        .where(Page.engagement_id == eid, RecordRegistry.engagement_id == eid, RecordRegistry.kind == "test_case")
+        .order_by(Page.id)
+    ))
+
+
+def delete_test_case_pages(db: Session, eid: str, ids: list[str]) -> None:
+    if not ids:
+        return
+    for model in (RecordRelationship, DocumentLink):
+        db.execute(delete(model).where(
+            model.engagement_id == eid, or_(model.source_id.in_(ids), model.target_id.in_(ids))
+        ))
+    for model in (CustomPropertyValue, WorkflowAssignment):
+        db.execute(delete(model).where(model.engagement_id == eid, model.record_id.in_(ids)))
+    db.execute(delete(RecentPage).where(RecentPage.engagement_id == eid, RecentPage.page_id.in_(ids)))
+    for pid in ids:
+        db.execute(text("DELETE FROM page_search WHERE engagement_id=:eid AND page_id=:pid"), {"eid": eid, "pid": pid})
+    db.execute(delete(TestCase).where(TestCase.page_id.in_(ids)))
+    db.execute(delete(RecordRegistry).where(RecordRegistry.engagement_id == eid, RecordRegistry.page_id.in_(ids)))
+    db.execute(delete(Page).where(Page.engagement_id == eid, Page.id.in_(ids)))
 
 
 def linked_assets(db: Session, eid: str, pid: str) -> set[str]:
